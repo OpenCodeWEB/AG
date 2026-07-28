@@ -1,0 +1,15 @@
+name = "opencodewebsag-worker"
+main = "src/index.ts"
+compatibility_date = "2024-07-24"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for AG bot tokens (create in Cloudflare dashboard)
+[[kv_namespaces]]
+binding = "AG_TOKENS_KV"
+id = "4746613824af45aba9c043bc20cb09d7"
+
+# Secrets to set via `wrangler secret put`:
+# WEBHOOK_SECRET   — GitHub webhook HMAC secret
+# APP_ID           — GitHub App ID
+# PRIVATE_KEY      — GitHub App RSA private key (PEM)
+# INSTALLATION_ID  — GitHub App installation ID

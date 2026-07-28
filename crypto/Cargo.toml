@@ -1,0 +1,17 @@
+[package]
+name = "opencodewebsag-crypto"
+version = "1.0.0"
+edition = "2021"
+description = "SHA-256 and HMAC-SHA256 crypto utilities for OpenCodeWEBsAG, compiled to WASM"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = "symbols"
