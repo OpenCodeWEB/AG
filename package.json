@@ -1,0 +1,15 @@
+{
+  "name": "opencodewebsag",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Autonomous Polyglot AI Agent — pre-mutation backups, AST audits, self-healing auto-repair, and dual-authorship commit engine.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.0",
+    "typescript": "^5.6.0"
+  }
+}
