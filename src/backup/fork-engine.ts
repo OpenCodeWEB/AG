@@ -165,7 +165,7 @@ async function getRepoInfo(
 /**
  * Record the backup result in the ToDo ledger.
  */
-export function recordBackup(backup: BackupResult, ledgerPath: string): string {
+export function recordBackup(backup: BackupResult): string {
   const entry = [
     "",
     `### 🛡️ Backup Snapshot`,
