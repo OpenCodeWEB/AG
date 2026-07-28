@@ -11,6 +11,9 @@
 export { exchangeCode, refreshAccessToken, ensureValidToken } from "./auth/token-refresh.js";
 export type { TokenPayload, TokenStore } from "./auth/token-refresh.js";
 
+export { generateAppJwt, getInstallationToken, verifyWebhookSignature } from "./auth/github.js";
+export type { GitHubAppConfig, InstallationToken } from "./auth/github.js";
+
 export { createBackup, recordBackup } from "./backup/fork-engine.js";
 export type { BackupResult } from "./backup/fork-engine.js";
 
