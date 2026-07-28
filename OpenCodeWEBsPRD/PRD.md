@@ -10,8 +10,8 @@
 
 ## Core Repositories
 
-- **OpenCodeWEBsAG:** [github.com/ABsUPs/OpenCodeWEBsAG](https://github.com/ABsUPs/OpenCodeWEBsAG) — Autonomous bot source code
-- **OpenCodeWEBsUI:** [github.com/ABsUPs/OpenCodeWEBsUI](https://github.com/ABsUPs/OpenCodeWEBsUI) — Frontend UI at [pocwu.pages.dev](https://pocwu.pages.dev)
+- **OpenCodeWEB/AG:** [github.com/OpenCodeWEB/AG](https://github.com/OpenCodeWEB/AG) — Autonomous bot source code
+- **OpenCodeWEB/UI:** [github.com/OpenCodeWEB/UI](https://github.com/OpenCodeWEB/UI) — Frontend UI at [pocwu.pages.dev](https://pocwu.pages.dev)
 
 ## System Requirements
 

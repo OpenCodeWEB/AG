@@ -16,7 +16,7 @@ OpenCodeWEBsAG operates as an autonomous agent that intercepts every push/PR eve
 ## Repository Structure
 
 ```
-github.com/ABsUPs/OpenCodeWEBsAG/
+github.com/OpenCodeWEB/AG/
 ├── .github/workflows/
 │   └── agent-core.yml              # Master CI/CD workflow
 ├── src/
@@ -49,8 +49,8 @@ github.com/ABsUPs/OpenCodeWEBsAG/
 
 ```bash
 # Clone the repository
-git clone https://github.com/ABsUPs/OpenCodeWEBsAG.git
-cd OpenCodeWEBsAG
+git clone https://github.com/OpenCodeWEB/AG.git
+cd AG
 
 # Install dependencies
 npm ci
@@ -61,4 +61,4 @@ npm run build
 
 ## Related Projects
 
-- **OpenCodeWEBsUI** — Frontend UI hosted at [pocwu.pages.dev](https://pocwu.pages.dev) ([github.com/ABsUPs/OpenCodeWEBsUI](https://github.com/ABsUPs/OpenCodeWEBsUI))
+- **OpenCodeWEB/UI** — Frontend UI hosted at [pocwu.pages.dev](https://pocwu.pages.dev) ([github.com/OpenCodeWEB/UI](https://github.com/OpenCodeWEB/UI))

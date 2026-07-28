@@ -119,7 +119,7 @@ To thoroughly validate the OpenCodeWEBsAG bot without risking production code, a
 
 ### 4.1 Testing Sandbox Specification
 
-- **Repository Name:** `OpenCodeWEBsAG-Test-Sandbox`
+- **Repository Name:** `OpenCodeWEB/SandBox`
 - **Purpose:** Serves as an isolated environment containing intentionally bugged code patterns (e.g., unused variables, type mismatches, missing handlers).
 - **Execution Verification Steps:**
   1. Authorize OpenCodeWEBsAG via https://pocwu.pages.dev.
@@ -127,12 +127,12 @@ To thoroughly validate the OpenCodeWEBsAG bot without risking production code, a
   3. Ensure AST audit scripts accurately populate `OpenCodeWEBsPRD/ToDo.md`.
   4. Validate safe auto-repair patches, dual co-authored commits, and non-destructive PR merges via the ABsUP workflow.
 
-### 4.2 Core Repository Architecture (github.com/ABsUPs/OpenCodeWEBsAG)
+### 4.2 Core Repository Architecture (github.com/OpenCodeWEB/AG)
 
-The primary source code for the bot resides at `https://github.com/ABsUPs/OpenCodeWEBsAG` with the following structural layout:
+The primary source code for the bot resides at `https://github.com/OpenCodeWEB/AG` with the following structural layout:
 
 ```text
-github.com/ABsUPs/OpenCodeWEBsAG/
+github.com/OpenCodeWEB/AG/
 ├── .github/
 │   └── workflows/
 │       └── agent-core.yml            # Master GitHub Action execution engine
@@ -248,7 +248,7 @@ jobs:
 ## 6. Master Repository & Index Reference
 
 - **CONTRIBUTING.md:** Enforces the prohibition of direct GitHub pushes, mandates all code updates route through ABsUP, and defines dual co-authoring rules.
-- **github.com/ABsUPs/OpenCodeWEBsAG:** Official core repository housing the OpenCodeWEBsAG bot codebase.
-- **OpenCodeWEBsAG-Test-Sandbox:** Isolated sandbox repository for verifying fork backups, AST scanning, dual-authorship commits, and auto-fix capabilities.
+- **github.com/OpenCodeWEB/AG:** Official core repository housing the OpenCodeWEBsAG bot codebase.
+- **OpenCodeWEB/SandBox:** Isolated sandbox repository for verifying fork backups, AST scanning, dual-authorship commits, and auto-fix capabilities.
 - **OpenCodeWEBsPRD/Testing_and_Repo_Architecture.md:** Operational blueprint for sandbox testing and core bot folder architecture.
 - **OpenCodeWEBsPRD/OpenCodeWEBsAG_Full_GitHub_Logic.md:** Master specification containing the end-to-end bot lifecycle, backup system, dual-authoring configuration, and execution rules.

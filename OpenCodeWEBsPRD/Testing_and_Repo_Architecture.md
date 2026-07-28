@@ -2,7 +2,7 @@
 
 ## Testing Sandbox Specification
 
-**Repository:** `OpenCodeWEBsAG-Test-Sandbox`
+**Repository:** `OpenCodeWEB/SandBox`
 **Local mirror:** `D:\OpenCodeWEBsAG-Test-Sandbox`
 
 An isolated environment containing intentionally bugged code patterns for validating the OpenCodeWEBsAG bot without risking production code.
@@ -47,7 +47,7 @@ An isolated environment containing intentionally bugged code patterns for valida
 ## Core Repository Architecture
 
 ```
-github.com/ABsUPs/OpenCodeWEBsAG/
+github.com/OpenCodeWEB/AG/
 ├── .github/workflows/
 │   └── agent-core.yml              # Master CI/CD workflow
 ├── worker/                         # <-- NEW: Cloudflare Worker (webhook handler)
@@ -93,10 +93,10 @@ github.com/ABsUPs/OpenCodeWEBsAG/
 
 ## OpenCodeWEBsUI Integration
 
-The AG bot's user interface lives in the companion OpenCodeWEBsUI project:
+The AG bot's user interface lives in the companion UI project:
 
 ```
-github.com/ABsUPs/OpenCodeWEBsUI/
+github.com/OpenCodeWEB/UI/
 ├── functions/api/ag/
 │   ├── _shared.ts                  # Env + helpers for AG routes
 │   ├── auth/
