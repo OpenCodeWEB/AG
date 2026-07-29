@@ -7,7 +7,7 @@
  * 4. Remove stale entries no longer returned by GitHub.
  * 5. Return the fresh list.
  *
- * WEBHOOK TEST — trigger push event 001
+ * WEBHOOK TEST — trigger push event 002
  */
 
 import type { Env, InstallRecord } from "./_shared.js";
