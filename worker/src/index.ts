@@ -21,7 +21,7 @@ import { handleWebhook } from "./webhook/handler.js";
 import { handleListInstallations } from "./installations.js";
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const method = request.method;
 
@@ -71,7 +71,7 @@ export default {
         return new Response("Missing X-GitHub-Event or X-GitHub-Delivery header", { status: 400 });
       }
 
-      return handleWebhook(env, event, delivery, body, signature);
+      return handleWebhook(env, event, delivery, body, signature, ctx);
     }
 
     // ── 404 ───────────────────────────────────────────────────── //

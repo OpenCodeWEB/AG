@@ -1,72 +1,21 @@
 /**
- * GET /installations — Sync & list all GitHub App installations.
+ * GET /installations — Sync & list all GitHub App installations from the API.
  *
  * 1. Generate a JWT signed with the GitHub App's RSA private key (RS256).
  * 2. Call GET /app/installations on the GitHub REST API.
  * 3. Store / update each installation record in AG_TOKENS_KV.
  * 4. Remove stale entries no longer returned by GitHub.
  * 5. Return the fresh list.
+ *
+ * WEBHOOK TEST — trigger push event 001
  */
 
-import type { Env } from "./_shared.js";
+import type { Env, InstallRecord } from "./_shared.js";
 import { json } from "./_shared.js";
+import { generateAppJwt } from "../../src/auth/github.js";
+import type { GitHubAppConfig } from "../../src/auth/github.js";
 
-/* ------------------------------------------------------------------ */
-/*  GitHub App JWT (RS256)                                             */
-/* ------------------------------------------------------------------ */
-
-/** Decode a PEM string to DER bytes (assumes PKCS#8 format). */
-function pemToDer(pem: string): ArrayBuffer {
-  const base64 = pem
-    .replace(/-----BEGIN [\w\s]+ KEY-----/g, "")
-    .replace(/-----END [\w\s]+ KEY-----/g, "")
-    .replace(/\s/g, "");
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-/** Base64url-encode an ArrayBuffer (no padding). */
-function base64url(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-async function generateAppJwt(appId: string, privateKeyPem: string): Promise<string> {
-  const header = { alg: "RS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = { iat: now - 60, exp: now + 600, iss: Number(appId) };
-
-  const encoder = new TextEncoder();
-  const message =
-    base64url(encoder.encode(JSON.stringify(header)).buffer) +
-    "." +
-    base64url(encoder.encode(JSON.stringify(payload)).buffer);
-
-  // Import the PKCS#8 private key into Web Crypto
-  const der = pemToDer(privateKeyPem);
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    der,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  // Sign the message
-  const signature = await crypto.subtle.sign(
-    { name: "RSASSA-PKCS1-v1_5" },
-    key,
-    encoder.encode(message),
-  );
-
-  return message + "." + base64url(signature);
-}
+const KV_PREFIX = "ag_install:";
 
 /* ------------------------------------------------------------------ */
 /*  GitHub REST API helpers                                            */
@@ -106,17 +55,6 @@ async function fetchInstallationsFromGitHub(jwt: string): Promise<GitHubInstalla
 /*  KV sync helpers                                                    */
 /* ------------------------------------------------------------------ */
 
-/** Normalised record shape stored in KV under ag_install:<id> */
-interface InstallRecord {
-  installationId: string;
-  account: string;
-  accountType: string;
-  setupAction: string;
-  installedAt: string;
-  suspendedAt: string | null;
-  updatedAt: string;
-}
-
 function toRecord(inst: GitHubInstallation): InstallRecord {
   return {
     installationId: String(inst.id),
@@ -129,15 +67,12 @@ function toRecord(inst: GitHubInstallation): InstallRecord {
   };
 }
 
-const KV_PREFIX = "ag_install:";
-
 async function syncToKv(
   kv: KVNamespace,
   installations: GitHubInstallation[],
 ): Promise<InstallRecord[]> {
   const fresh = new Set<string>();
 
-  // Upsert each installation from GitHub
   for (const inst of installations) {
     const id = String(inst.id);
     fresh.add(id);
@@ -146,7 +81,7 @@ async function syncToKv(
     await kv.put(key, JSON.stringify(record), { expirationTtl: 86400 * 90 });
   }
 
-  // Remove stale entries (those in KV but not returned by GitHub)
+  // Remove stale entries
   const listed = await kv.list({ prefix: KV_PREFIX });
   for (const key of listed.keys) {
     const existingId = key.name.replace(KV_PREFIX, "");
@@ -176,13 +111,15 @@ export async function handleListInstallations(env: Env): Promise<Response> {
   }
 
   try {
-    // 1. Authenticate as the GitHub App
-    const jwt = await generateAppJwt(env.APP_ID, env.PRIVATE_KEY);
+    // Use core library's generateAppJwt
+    const config: GitHubAppConfig = {
+      appId: env.APP_ID,
+      privateKey: env.PRIVATE_KEY,
+      installationId: env.INSTALLATION_ID ?? "0",
+    };
+    const jwt = await generateAppJwt(config);
 
-    // 2. Fetch installations from GitHub API
     const installations = await fetchInstallationsFromGitHub(jwt);
-
-    // 3. Sync to KV (upsert + remove stale)
     const records = await syncToKv(env.AG_TOKENS_KV, installations);
 
     return json({

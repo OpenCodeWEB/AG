@@ -10,6 +10,17 @@ export interface Env {
   INSTALLATION_ID?: string;
 }
 
+/** Installation record stored in KV under ag_install:<id> */
+export interface InstallRecord {
+  installationId: string;
+  account: string;
+  accountType: string;
+  setupAction: string;
+  installedAt: string;
+  suspendedAt: string | null;
+  updatedAt: string;
+}
+
 /** JSON-serialised token store saved in AG_TOKENS_KV keyed by installation ID */
 export interface TokenStore {
   accessToken: string;

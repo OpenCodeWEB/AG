@@ -41,7 +41,7 @@ export async function generateAppJwt(config: GitHubAppConfig): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
     iss: config.appId,
-    iat: now,
+    iat: now - 60, // 60s leeway for clock skew
     exp: now + 600, // 10 minutes — GitHub max
   };
 
@@ -55,12 +55,10 @@ export async function generateAppJwt(config: GitHubAppConfig): Promise<string> {
   const payloadB64 = encode(payload);
   const message = `${headerB64}.${payloadB64}`;
 
-  // Import the private key
-  const pemHeader = "-----BEGIN RSA PRIVATE KEY-----";
-  const pemFooter = "-----END RSA PRIVATE KEY-----";
+  // Import the private key (handles both PKCS#1 "RSA PRIVATE KEY" and PKCS#8 "PRIVATE KEY")
   const pemContents = config.privateKey
-    .replace(pemHeader, "")
-    .replace(pemFooter, "")
+    .replace(/-----BEGIN [\w\s]+ KEY-----/g, "")
+    .replace(/-----END [\w\s]+ KEY-----/g, "")
     .replace(/\s/g, "");
 
   const binaryDer = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
