@@ -3,11 +3,12 @@
  *
  * Routes:
  *   GET  /health          → 200 OK (health check)
+ *   GET  /installations   → Sync & list all GitHub App installations from API
  *   POST /webhook         → GitHub webhook handler (HMAC-verified)
  *
  * Secrets (set via `wrangler secret put`):
  *   WEBHOOK_SECRET   — GitHub webhook secret
- *   APP_ID           — GitHub App ID
+ *   APP_ID           — GitHub App ID (numeric)
  *   PRIVATE_KEY      — GitHub App RSA private key (PEM)
  *   INSTALLATION_ID  — GitHub App installation ID
  *
@@ -17,6 +18,7 @@
 
 import type { Env } from "./_shared.js";
 import { handleWebhook } from "./webhook/handler.js";
+import { handleListInstallations } from "./installations.js";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -29,7 +31,7 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, X-Hub-Signature-256, X-GitHub-Event, X-GitHub-Delivery",
+          "Access-Control-Allow-Headers": "Content-Type, X-Hub-Signature-256, X-GitHub-Event, X-GitHub-Delivery, Authorization",
         },
       });
     }
@@ -51,6 +53,11 @@ export default {
           },
         },
       );
+    }
+
+    // ── GET /installations ────────────────────────────────────── //
+    if (method === "GET" && url.pathname === "/installations") {
+      return handleListInstallations(env);
     }
 
     // ── POST /webhook ─────────────────────────────────────────── //
