@@ -8,6 +8,7 @@ export interface Env {
   APP_ID?: string;
   PRIVATE_KEY?: string;
   INSTALLATION_ID?: string;
+  INTERNAL_GATEWAY_TOKEN?: string;
 }
 
 /** Installation record stored in KV under ag_install:<id> */

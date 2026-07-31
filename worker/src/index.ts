@@ -19,6 +19,7 @@
 import type { Env } from "./_shared.js";
 import { handleWebhook } from "./webhook/handler.js";
 import { handleListInstallations } from "./installations.js";
+import { handleCreateRepo } from "./repos.js";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -31,12 +32,13 @@ export default {
         headers: {
           "Access-Control-Allow-Origin": "*",
           "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, X-Hub-Signature-256, X-GitHub-Event, X-GitHub-Delivery, Authorization",
+          "Access-Control-Allow-Headers": "Content-Type, X-Hub-Signature-256, X-GitHub-Event, X-GitHub-Delivery, Authorization, X-Gateway-Token",
         },
       });
     }
 
     // ── GET /health ───────────────────────────────────────────── //
+    // Whitelisted before gateway guard — called via Pages Function service binding
     if (method === "GET" && url.pathname === "/health") {
       return new Response(
         JSON.stringify({
@@ -56,8 +58,33 @@ export default {
     }
 
     // ── GET /installations ────────────────────────────────────── //
+    // Whitelisted before gateway guard — called via Pages Function service binding
     if (method === "GET" && url.pathname === "/installations") {
       return handleListInstallations(env);
+    }
+
+    // ── Gateway-only access check ─────────────────────────────── //
+    // All requests MUST come through opencodeweb.xup.workers.dev.
+    // Direct access to this worker URL is blocked.
+    const gatewayToken = request.headers.get("X-Gateway-Token");
+    if (env.INTERNAL_GATEWAY_TOKEN && gatewayToken !== env.INTERNAL_GATEWAY_TOKEN) {
+      return new Response(
+        JSON.stringify({
+          error: "Direct access denied",
+          message: "This worker is only accessible via opencodeweb.xup.workers.dev",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // ── POST /repos ──────────────────────────────────────────────── //
+    // Create a repository on behalf of an installation (orgs only).
+    // Protected by the gateway guard — only reachable via the gateway.
+    if (method === "POST" && url.pathname === "/repos") {
+      return handleCreateRepo(env, request);
     }
 
     // ── POST /webhook ─────────────────────────────────────────── //
