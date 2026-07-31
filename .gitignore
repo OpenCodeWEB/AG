@@ -9,3 +9,14 @@ target/
 *.log
 .DS_Store
 Thumbs.db
+
+# Secrets & credentials — never commit
+*.pem
+*.key
+*.p12
+*.pfx
+.dev.vars
+secrets*
+
+# Local gateway test artifacts
+gateway/test1.json
