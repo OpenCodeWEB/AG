@@ -26,7 +26,7 @@ const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 export async function exchangeCode(
   clientId: string,
   clientSecret: string,
-  code: string
+  code: string,
 ): Promise<TokenPayload> {
   const resp = await fetch(GITHUB_TOKEN_URL, {
     method: "POST",
@@ -71,7 +71,7 @@ export async function exchangeCode(
 export async function refreshAccessToken(
   clientId: string,
   clientSecret: string,
-  refreshToken: string
+  refreshToken: string,
 ): Promise<TokenPayload> {
   const resp = await fetch(GITHUB_TOKEN_URL, {
     method: "POST",
@@ -113,7 +113,7 @@ export async function ensureValidToken(
   store: TokenStore,
   clientId: string,
   clientSecret: string,
-  key: string
+  key: string,
 ): Promise<TokenPayload> {
   const existing = await store.get(key);
   if (!existing) {
@@ -130,7 +130,7 @@ export async function ensureValidToken(
     const refreshed = await refreshAccessToken(
       clientId,
       clientSecret,
-      existing.refreshToken
+      existing.refreshToken,
     );
     // Store the new token (8h TTL for access, longer for refresh)
     await store.set(key, refreshed, 28800);

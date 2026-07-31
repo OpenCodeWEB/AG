@@ -31,7 +31,7 @@ export interface ScanResult {
  * this would delegate to language-specific AST parsers.
  */
 export function scanFiles(
-  files: Array<{ path: string; content: string }>
+  files: Array<{ path: string; content: string }>,
 ): ScanResult {
   const issues: DetectedIssue[] = [];
 
@@ -88,7 +88,7 @@ function scanTypeScriptLike(file: {
 
     // Detect unused variables (declared but never referenced)
     const unusedMatch = line.match(
-      /(?:const|let|var)\s+(\w+)\s*=(?![^]*\1[^]*)/g
+      /(?:const|let|var)\s+(\w+)\s*=(?![^]*\1[^]*)/g,
     );
     if (unusedMatch) {
       issues.push({
@@ -162,10 +162,7 @@ function scanRustLike(file: {
 /**
  * Scan Go files for common issues.
  */
-function scanGoLike(file: {
-  path: string;
-  content: string;
-}): DetectedIssue[] {
+function scanGoLike(file: { path: string; content: string }): DetectedIssue[] {
   const issues: DetectedIssue[] = [];
   const lines = file.content.split("\n");
 
@@ -191,10 +188,7 @@ function scanGoLike(file: {
 /**
  * Generic file scan for basic quality issues.
  */
-function scanGeneric(file: {
-  path: string;
-  content: string;
-}): DetectedIssue[] {
+function scanGeneric(file: { path: string; content: string }): DetectedIssue[] {
   const issues: DetectedIssue[] = [];
   const lines = file.content.split("\n");
 

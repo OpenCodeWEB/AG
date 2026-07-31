@@ -68,13 +68,13 @@ export async function generateAppJwt(config: GitHubAppConfig): Promise<string> {
     binaryDer,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
 
   const signature = await crypto.subtle.sign(
     { name: "RSASSA-PKCS1-v1_5" },
     key,
-    new TextEncoder().encode(message)
+    new TextEncoder().encode(message),
   );
 
   const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
@@ -92,7 +92,7 @@ export async function generateAppJwt(config: GitHubAppConfig): Promise<string> {
  */
 export async function getInstallationToken(
   jwt: string,
-  installationId: string
+  installationId: string,
 ): Promise<InstallationToken> {
   const resp = await fetch(
     `${GITHUB_API}/app/installations/${installationId}/access_tokens`,
@@ -104,12 +104,12 @@ export async function getInstallationToken(
         "User-Agent": "OpenCodeWEBsAG/1.0",
         Accept: "application/vnd.github.v3+json",
       },
-    }
+    },
   );
 
   if (!resp.ok) {
     throw new Error(
-      `Installation token exchange failed: ${resp.status} ${await resp.text()}`
+      `Installation token exchange failed: ${resp.status} ${await resp.text()}`,
     );
   }
 
@@ -135,7 +135,7 @@ export async function getInstallationToken(
 export async function verifyWebhookSignature(
   secret: string,
   body: string,
-  signature: string
+  signature: string,
 ): Promise<boolean> {
   const algo = { name: "HMAC", hash: "SHA-256" };
   const key = await crypto.subtle.importKey(
@@ -143,7 +143,7 @@ export async function verifyWebhookSignature(
     new TextEncoder().encode(secret),
     algo,
     false,
-    ["verify"]
+    ["verify"],
   );
 
   const expectedSig = `sha256=${await hmacHex(key, body)}`;
@@ -154,7 +154,7 @@ async function hmacHex(key: CryptoKey, data: string): Promise<string> {
   const sig = await crypto.subtle.sign(
     "HMAC",
     key,
-    new TextEncoder().encode(data)
+    new TextEncoder().encode(data),
   );
   return Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, "0"))

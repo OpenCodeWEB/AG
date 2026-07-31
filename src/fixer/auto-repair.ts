@@ -15,7 +15,8 @@ export interface FixResult {
   error?: string;
 }
 
-const CO_AUTHOR = "Co-authored-by: OpenCodeWEBsAG <ID+OpenCodeWEBsAG@users.noreply.github.com>";
+const CO_AUTHOR =
+  "Co-authored-by: OpenCodeWEBsAG <ID+OpenCodeWEBsAG@users.noreply.github.com>";
 const COMMIT_AUTHOR = "ABsUP <ABsUP@users.noreply.github.com>";
 
 /**
@@ -25,7 +26,7 @@ const COMMIT_AUTHOR = "ABsUP <ABsUP@users.noreply.github.com>";
 export function applyAutoFixes(
   filePath: string,
   content: string,
-  issues: DetectedIssue[]
+  issues: DetectedIssue[],
 ): { fixedContent: string; fixes: FixResult[] } {
   let fixedContent = content;
   const fixes: FixResult[] = [];
@@ -50,7 +51,7 @@ export function applyAutoFixes(
 function tryFixIssue(
   filePath: string,
   content: string,
-  issue: DetectedIssue
+  issue: DetectedIssue,
 ): { fixedContent: string; fixResult: FixResult } | null {
   const lines = content.split("\n");
   const lineIndex = issue.line - 1;
@@ -78,7 +79,7 @@ function tryFixIssue(
       // Replace console.log/debug with a noop or comment them
       lines[lineIndex] = line.replace(
         /console\.(log|debug)\s*\(/g,
-        "// console.$1("
+        "// console.$1(",
       );
       return {
         fixedContent: lines.join("\n"),
@@ -92,7 +93,10 @@ function tryFixIssue(
 
     case "no-unwrap": {
       // Comment out the .unwrap() and add a suggestion
-      lines[lineIndex] = line.replace(/\.unwrap\(\)/g, "/* .unwrap() — TODO: handle error properly */");
+      lines[lineIndex] = line.replace(
+        /\.unwrap\(\)/g,
+        "/* .unwrap() — TODO: handle error properly */",
+      );
       return {
         fixedContent: lines.join("\n"),
         fixResult: {
@@ -113,7 +117,7 @@ function tryFixIssue(
  */
 export function buildCommitMessage(
   fixes: FixResult[],
-  branchName: string
+  branchName: string,
 ): string {
   const fixCount = fixes.filter((f) => f.success).length;
   const failCount = fixes.filter((f) => !f.success).length;

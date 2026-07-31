@@ -23,7 +23,7 @@ export async function createBackup(
   token: string,
   owner: string,
   repo: string,
-  timestamp: string
+  timestamp: string,
 ): Promise<BackupResult> {
   // Check repository visibility
   const repoInfo = await getRepoInfo(token, owner, repo);
@@ -43,7 +43,7 @@ async function createFork(
   token: string,
   owner: string,
   repo: string,
-  timestamp: string
+  timestamp: string,
 ): Promise<BackupResult> {
   const resp = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/forks`, {
     method: "POST",
@@ -59,7 +59,9 @@ async function createFork(
   });
 
   if (!resp.ok) {
-    throw new Error(`Fork creation failed: ${resp.status} ${await resp.text()}`);
+    throw new Error(
+      `Fork creation failed: ${resp.status} ${await resp.text()}`,
+    );
   }
 
   const data = (await resp.json()) as {
@@ -84,7 +86,7 @@ async function createSnapshotBranch(
   token: string,
   owner: string,
   repo: string,
-  timestamp: string
+  timestamp: string,
 ): Promise<BackupResult> {
   const branchName = `backup/opencode-ag-${timestamp}`;
 
@@ -100,7 +102,7 @@ async function createSnapshotBranch(
         Authorization: `Bearer ${token}`,
         "User-Agent": "OpenCodeWEBsAG/1.0",
       },
-    }
+    },
   );
 
   if (!refResp.ok) {
@@ -124,7 +126,7 @@ async function createSnapshotBranch(
         ref: `refs/heads/${branchName}`,
         sha,
       }),
-    }
+    },
   );
 
   if (!branchResp.ok) {
@@ -146,7 +148,7 @@ async function createSnapshotBranch(
 async function getRepoInfo(
   token: string,
   owner: string,
-  repo: string
+  repo: string,
 ): Promise<{ private: boolean; default_branch: string }> {
   const resp = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
     headers: {
