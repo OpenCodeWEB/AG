@@ -20,6 +20,8 @@
  *   /api/auth/callback    — OAuth callback for GitHub App
  *   /api/ag/*             — Proxy to AG worker
  *                            (POST /api/ag/repos → create repository)
+ *   /api/metrics/live     — Public metrics read (GET, no credentials)
+ *   /api/metrics/update   — Metrics write (POST, HMAC verified)
  *   /api/globe/*          — Proxy to Globe Relay
  */
 
@@ -101,6 +103,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return proxyToWorker(request, env, env.AG_WORKER, url, "/api/ag");
   }
 
+  // Proxy to AG Worker metrics endpoints (no prefix strip — worker owns the full path)
+  if (path.startsWith("/api/metrics/")) {
+    return proxyToWorker(request, env, env.AG_WORKER, url, "");
+  }
+
   // Proxy to Globe Relay (WebSocket-compatible)
   if ((path.startsWith("/api/globe/") || path === "/api/globe-ws") && env.GLOBE_RELAY) {
     return proxyToGlobe(request, env, url);
@@ -118,6 +125,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
         "/api/auth/callback",
         "/api/ag/*",
         "/api/ag/repos (POST — create repository)",
+        "/api/metrics/live (GET — public metrics)",
+        "/api/metrics/update (POST — HMAC metrics write)",
         "/api/globe/*",
       ],
     }),
@@ -144,6 +153,11 @@ async function authenticate(
   const gatewayToken = request.headers.get("X-Gateway-Token") ?? "";
   const apiKey = authHeader.replace("Bearer ", "").trim();
 
+  // Public read: GET /api/metrics/live requires NO credentials
+  if (path === "/api/metrics/live" && request.method === "GET") {
+    return { authenticated: true };
+  }
+
   // Check standard API key / internal token
   const hasValidKey =
     (env.GATEWAY_API_KEY && apiKey === env.GATEWAY_API_KEY) ||
@@ -151,9 +165,12 @@ async function authenticate(
       gatewayToken === env.INTERNAL_GATEWAY_TOKEN);
 
   // Check webhook HMAC as alternative auth (GitHub's secret-key handshake)
+  // Applies to /api/github/webhook AND POST /api/metrics/update
+  const hmacRoutes =
+    path === "/api/github/webhook" ||
+    (path === "/api/metrics/update" && request.method === "POST");
   const hasValidHmac =
-    path === "/api/github/webhook" &&
-    (await isWebhookHmacValid(request, env));
+    hmacRoutes && (await isWebhookHmacValid(request, env));
 
   if (hasValidKey || hasValidHmac) {
     return { authenticated: true };
@@ -419,6 +436,7 @@ async function proxyToWorker(
       ...corsHeaders(),
       "Content-Type":
         proxied.headers.get("Content-Type") || "application/json",
+      "Cache-Control": proxied.headers.get("Cache-Control") || "no-cache",
       "X-Gateway": "opencodeweb.xup.workers.dev",
     },
   });

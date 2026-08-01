@@ -20,6 +20,7 @@ import type { Env } from "./_shared.js";
 import { handleWebhook } from "./webhook/handler.js";
 import { handleListInstallations } from "./installations.js";
 import { handleCreateRepo } from "./repos.js";
+import { handleGetMetrics, handleUpdateMetrics } from "./metrics.js";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -61,6 +62,19 @@ export default {
     // Whitelisted before gateway guard — called via Pages Function service binding
     if (method === "GET" && url.pathname === "/installations") {
       return handleListInstallations(env);
+    }
+
+    // ── GET /api/metrics/live ─────────────────────────────────── //
+    // Public read (no credentials) — self-authenticating via KV guard on POST.
+    // Called via gateway proxy AND Pages Function service binding.
+    if (method === "GET" && url.pathname === "/api/metrics/live") {
+      return handleGetMetrics(env);
+    }
+
+    // ── POST /api/metrics/update ──────────────────────────────── //
+    // HMAC-authenticated write (X-Hub-Signature-256) — no gateway token needed.
+    if (method === "POST" && url.pathname === "/api/metrics/update") {
+      return handleUpdateMetrics(env, request);
     }
 
     // ── Gateway-only access check ─────────────────────────────── //
