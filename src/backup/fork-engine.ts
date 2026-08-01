@@ -14,6 +14,8 @@ export interface BackupResult {
   timestamp: string;
 }
 
+import { githubFetch } from "../github-api.js";
+
 const GITHUB_API = "https://api.github.com";
 
 /**
@@ -45,7 +47,7 @@ async function createFork(
   repo: string,
   timestamp: string,
 ): Promise<BackupResult> {
-  const resp = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/forks`, {
+  const resp = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/forks`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -95,7 +97,7 @@ async function createSnapshotBranch(
   const defaultBranch = repoInfo.default_branch;
 
   // Get the latest commit SHA on the default branch
-  const refResp = await fetch(
+  const refResp = await githubFetch(
     `${GITHUB_API}/repos/${owner}/${repo}/git/ref/heads/${defaultBranch}`,
     {
       headers: {
@@ -113,7 +115,7 @@ async function createSnapshotBranch(
   const sha = refData.object.sha;
 
   // Create new branch from that SHA
-  const branchResp = await fetch(
+  const branchResp = await githubFetch(
     `${GITHUB_API}/repos/${owner}/${repo}/git/refs`,
     {
       method: "POST",
@@ -150,7 +152,7 @@ async function getRepoInfo(
   owner: string,
   repo: string,
 ): Promise<{ private: boolean; default_branch: string }> {
-  const resp = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
+  const resp = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       "User-Agent": "OpenCodeWEBsAG/1.0",

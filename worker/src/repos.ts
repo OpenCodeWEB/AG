@@ -30,6 +30,7 @@ import type { Env, InstallRecord } from "./_shared.js";
 import { json } from "./_shared.js";
 import { generateAppJwt, getInstallationToken } from "../../src/auth/github.js";
 import type { GitHubAppConfig } from "../../src/auth/github.js";
+import { githubFetch } from "../../src/github-api.js";
 
 const GITHUB_API = "https://api.github.com";
 const KV_PREFIX = "ag_install:";
@@ -177,7 +178,7 @@ export async function handleCreateRepo(
   const url = `${GITHUB_API}/orgs/${owner}/repos`;
   let resp: Response;
   try {
-    resp = await fetch(url, {
+    resp = await githubFetch(url, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -191,8 +192,7 @@ export async function handleCreateRepo(
         private: isPrivate,
         auto_init: autoInit,
       }),
-    });
-  } catch (err) {
+    });  } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return json({ error: "GitHub API request failed", message }, 502);
   }

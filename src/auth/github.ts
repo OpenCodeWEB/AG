@@ -24,6 +24,8 @@ export interface InstallationToken {
   repositorySelection: string;
 }
 
+import { githubFetch } from "../github-api.js";
+
 const GITHUB_API = "https://api.github.com";
 
 /**
@@ -94,7 +96,7 @@ export async function getInstallationToken(
   jwt: string,
   installationId: string,
 ): Promise<InstallationToken> {
-  const resp = await fetch(
+  const resp = await githubFetch(
     `${GITHUB_API}/app/installations/${installationId}/access_tokens`,
     {
       method: "POST",

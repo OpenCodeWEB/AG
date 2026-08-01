@@ -102,7 +102,7 @@ jobs:
           npx tsx scripts/run-audit.ts
 
       # -----------------------------------------------------------------------
-      #  Step 7 — Apply Safe Auto-Formatting
+      #  Step 7 - Apply Safe Auto-Formatting
       # -----------------------------------------------------------------------
       - name: Apply Safe Auto-Fix Patches
         run: |
@@ -110,7 +110,41 @@ jobs:
           npx prettier --write "src/**/*.ts" || echo "Formatting skipped (no .ts files or prettier unavailable)"
 
       # -----------------------------------------------------------------------
-      #  Step 8 — Deploy Worker (push to main only)
+      #  Step 8 - Secret Leak Prevention Scan
+      # -----------------------------------------------------------------------
+      - name: Secret Leak Prevention Scan
+        run: |
+          echo "Scanning for leaked credentials (AWS, GitHub, Slack, Stripe, Google, PEM keys)..."
+          FAIL=0
+          scan() {
+            local pattern="$1" label="$2"
+            local matches
+            matches=$(grep -rInE "$pattern" \
+              --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git \
+              --exclude-dir=coverage --exclude-dir=.wrangler --exclude-dir=.github \
+              --exclude="package-lock.json" --exclude="*.min.js" --exclude="*.map" \
+              . 2>/dev/null || true)
+            if [ -n "$matches" ]; then
+              echo "::error::[$label] potential leak detected:"
+              echo "$matches" | head -20
+              FAIL=1
+            fi
+          }
+          scan 'AKIA[0-9A-Z]{16}' "AWS Access Key"
+          scan '-----BEGIN [A-Z ]*PRIVATE KEY-----' "Private PEM Key"
+          scan 'ghp_[A-Za-z0-9]{36}' "GitHub PAT"
+          scan 'github_pat_[A-Za-z0-9_]{22,}' "GitHub Fine-Grained PAT"
+          scan 'xox[baprs]-[A-Za-z0-9-]{10,}' "Slack Token"
+          scan 'sk_live_[0-9a-zA-Z]{16,}' "Stripe Secret Key"
+          scan 'AIza[0-9A-Za-z_-]{35}' "Google API Key"
+          if [ $FAIL -ne 0 ]; then
+            echo "::error::Secret leak scan failed — remove leaked credentials before committing."
+            exit 1
+          fi
+          echo "✅ No leaked secrets detected."
+
+      # -----------------------------------------------------------------------
+      #  Step 9 - Deploy Worker (push to main only)
       # -----------------------------------------------------------------------
       - name: Deploy Cloudflare Worker
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -121,7 +155,7 @@ jobs:
           npx wrangler deploy --minify
 
       # -----------------------------------------------------------------------
-      #  Step 9 — Commit Changes (Dynamic User & Bot Co-Authorship)
+      #  Step 10 - Commit Changes (Dynamic User & Bot Co-Authorship)
       # -----------------------------------------------------------------------
       - name: Commit Changes (Dynamic User & Bot Co-Authorship)
         uses: stefanzweifel/git-auto-commit-action@v5

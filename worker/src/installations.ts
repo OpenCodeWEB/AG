@@ -14,6 +14,7 @@ import type { Env, InstallRecord } from "./_shared.js";
 import { json } from "./_shared.js";
 import { generateAppJwt } from "../../src/auth/github.js";
 import type { GitHubAppConfig } from "../../src/auth/github.js";
+import { githubFetch } from "../../src/github-api.js";
 
 const KV_PREFIX = "ag_install:";
 
@@ -35,7 +36,7 @@ interface GitHubInstallation {
 
 async function fetchInstallationsFromGitHub(jwt: string): Promise<GitHubInstallation[]> {
   const url = "https://api.github.com/app/installations?per_page=100";
-  const response = await fetch(url, {
+  const response = await githubFetch(url, {
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${jwt}`,
