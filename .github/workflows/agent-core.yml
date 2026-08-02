@@ -161,11 +161,11 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: |
-            robot: OpenCodeWEBsAG automated audit, test, and optimization [skip ci]
+            robot: OpenCodeWEB automated audit, test, and optimization [skip ci]
 
-            Co-authored-by: opencodewebsag[bot] <310317445+opencodewebsag[bot]@users.noreply.github.com>
+            Co-authored-by: opencodeweb[bot] <311941023+opencodeweb[bot]@users.noreply.github.com>
             Co-authored-by: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           branch: ${{ github.head_ref || github.ref_name }}
-          commit_author: "opencodewebsag[bot] <310317445+opencodewebsag[bot]@users.noreply.github.com>"
-          commit_user_name: "opencodewebsag[bot]"
-          commit_user_email: "310317445+opencodewebsag[bot]@users.noreply.github.com"
+          commit_author: "opencodeweb[bot] <311941023+opencodeweb[bot]@users.noreply.github.com>"
+          commit_user_name: "opencodeweb[bot]"
+          commit_user_email: "311941023+opencodeweb[bot]@users.noreply.github.com"

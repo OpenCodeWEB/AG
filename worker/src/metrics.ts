@@ -284,7 +284,7 @@ interface GitHubCommit {
 }
 
 /**
- * Automation identities displayed in the leaderboard as OpenCodeWEBsAG.
+ * Automation identities displayed in the leaderboard as OpenCodeWEB.
  * GitHub's /contributors endpoint excludes bot accounts, and its `author`
  * query filter does not resolve `[bot]` logins — exact per-bot counts use
  * the bot user's noreply email ({user_id}+{slug}[bot]@users.noreply.github.com).
@@ -294,19 +294,24 @@ const BOT_IDENTITY_MAP: Record<
   { username: string; role: string; email: string }
 > = {
   "github-actions[bot]": {
-    username: "OpenCodeWEBsAG",
+    username: "OpenCodeWEB",
     role: "Bot / Automation",
     email: "41898282+github-actions[bot]@users.noreply.github.com",
   },
   "opencodewebsag[bot]": {
-    username: "OpenCodeWEBsAG",
+    username: "OpenCodeWEB",
     role: "Bot / Automation",
     email: "310317445+opencodewebsag[bot]@users.noreply.github.com",
   },
+  "opencodeweb[bot]": {
+    username: "OpenCodeWEB",
+    role: "Bot / Automation",
+    email: "311941023+opencodeweb[bot]@users.noreply.github.com",
+  },
 };
 
-/** Public avatar + page for the OpenCodeWEBsAG GitHub App bot user. */
-const OPENCODEWEBSAG_AVATAR =
+/** Public avatar for the OpenCodeWEB GitHub App bot users (org avatar). */
+const OPENCODEWEB_AVATAR =
   "https://avatars.githubusercontent.com/u/310319632?v=4";
 
 /**
@@ -328,7 +333,7 @@ export async function aggregateGitHubStats(
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
-        "User-Agent": "OpenCodeWEBsAG/1.0",
+        "User-Agent": "OpenCodeWEB/1.0",
       },
     },
   );
@@ -369,7 +374,7 @@ export async function aggregateGitHubStats(
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/vnd.github+json",
-            "User-Agent": "OpenCodeWEBsAG/1.0",
+            "User-Agent": "OpenCodeWEB/1.0",
           },
         },
       );
@@ -405,7 +410,7 @@ export async function aggregateGitHubStats(
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/vnd.github+json",
-            "User-Agent": "OpenCodeWEBsAG/1.0",
+            "User-Agent": "OpenCodeWEB/1.0",
           },
         },
       );
@@ -448,7 +453,7 @@ export async function aggregateGitHubStats(
               headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: "application/vnd.github+json",
-                "User-Agent": "OpenCodeWEBsAG/1.0",
+                "User-Agent": "OpenCodeWEB/1.0",
               },
             },
           );
@@ -474,7 +479,7 @@ export async function aggregateGitHubStats(
           headers: {
             Authorization: `Bearer ${token}`,
             Accept: "application/vnd.github+json",
-            "User-Agent": "OpenCodeWEBsAG/1.0",
+            "User-Agent": "OpenCodeWEB/1.0",
           },
         },
       );
@@ -491,7 +496,7 @@ export async function aggregateGitHubStats(
   }
 
   // Merge mapped bot identities into the leaderboard (e.g. github-actions[bot]
-  // and opencodewebsag[bot] both display as OpenCodeWEBsAG).
+  // and opencodewebsag[bot] both display as OpenCodeWEB).
   const mergedBots = new Map<
     string,
     { count: number; avatar: string; lastActive: string; role: string }
@@ -500,7 +505,7 @@ export async function aggregateGitHubStats(
     const mapped = BOT_IDENTITY_MAP[rawLogin];
     if (!mapped) continue;
     const meta = botMeta.get(rawLogin) ?? {
-      avatar: OPENCODEWEBSAG_AVATAR,
+      avatar: OPENCODEWEB_AVATAR,
       lastActive: new Date(0).toISOString(),
     };
     const cur = mergedBots.get(mapped.username);
@@ -511,7 +516,7 @@ export async function aggregateGitHubStats(
     } else {
       mergedBots.set(mapped.username, {
         count,
-        avatar: meta.avatar || OPENCODEWEBSAG_AVATAR,
+        avatar: meta.avatar || OPENCODEWEB_AVATAR,
         lastActive: meta.lastActive,
         role: mapped.role,
       });

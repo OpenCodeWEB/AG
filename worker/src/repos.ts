@@ -144,7 +144,7 @@ export async function handleCreateRepo(
   if (!installationId) {
     return json(
       {
-        error: `No installation found for "${owner}". Install the OpenCodeWEBsAG GitHub App on this account first.`,
+        error: `No installation found for "${owner}". Install the OpenCodeWEB GitHub App on this account first.`,
       },
       404,
     );
@@ -184,11 +184,11 @@ export async function handleCreateRepo(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/vnd.github.v3+json",
-        "User-Agent": "OpenCodeWEBsAG/1.0",
+        "User-Agent": "OpenCodeWEB/1.0",
       },
       body: JSON.stringify({
         name,
-        description: body.description ?? `Created by OpenCodeWEBsAG`,
+        description: body.description ?? `Created by OpenCodeWEB`,
         private: isPrivate,
         auto_init: autoInit,
       }),

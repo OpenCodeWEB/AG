@@ -40,7 +40,7 @@ async function fetchInstallationsFromGitHub(jwt: string): Promise<GitHubInstalla
     headers: {
       Accept: "application/vnd.github+json",
       Authorization: `Bearer ${jwt}`,
-      "User-Agent": "opencodewebsag-worker",
+      "User-Agent": "opencodeweb-worker",
     },
   });
 

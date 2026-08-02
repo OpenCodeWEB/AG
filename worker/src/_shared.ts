@@ -1,5 +1,5 @@
 /**
- * Shared types and utilities for the OpenCodeWEBsAG webhook Worker.
+ * Shared types and utilities for the OpenCodeWEB webhook Worker.
  */
 
 export interface Env {
