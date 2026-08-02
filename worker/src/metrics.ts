@@ -269,6 +269,7 @@ interface GitHubRepo {
   full_name: string;
   name: string;
   private: boolean;
+  fork: boolean;
 }
 
 interface GitHubContributor {
@@ -284,13 +285,24 @@ interface GitHubCommit {
 
 /**
  * Automation identities displayed in the leaderboard as OpenCodeWEBsAG.
- * GitHub's /contributors endpoint excludes bot accounts, so bot-authored
- * commits must be counted separately (commits?author=... + Link header).
+ * GitHub's /contributors endpoint excludes bot accounts, and its `author`
+ * query filter does not resolve `[bot]` logins — exact per-bot counts use
+ * the bot user's noreply email ({user_id}+{slug}[bot]@users.noreply.github.com).
  */
-const BOT_IDENTITY_MAP: Record<string, { username: string; role: string }> = {
-  "github-actions[bot]": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
-  "github-actionsbot": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
-  "opencodewebsag[bot]": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
+const BOT_IDENTITY_MAP: Record<
+  string,
+  { username: string; role: string; email: string }
+> = {
+  "github-actions[bot]": {
+    username: "OpenCodeWEBsAG",
+    role: "Bot / Automation",
+    email: "41898282+github-actions[bot]@users.noreply.github.com",
+  },
+  "opencodewebsag[bot]": {
+    username: "OpenCodeWEBsAG",
+    role: "Bot / Automation",
+    email: "310317445+opencodewebsag[bot]@users.noreply.github.com",
+  },
 };
 
 /** Public avatar + page for the OpenCodeWEBsAG GitHub App bot user. */
@@ -342,6 +354,13 @@ export async function aggregateGitHubStats(
   let totalBackups = 0;
 
   for (const repo of reposData.repositories) {
+    // Skip forks: backup snapshots (AG-backup-*/UI-backup-*/SandBox-backup-*)
+    // and imported forks would double-count every commit and blow the
+    // Worker 50-subrequest invocation limit.
+    if (repo.fork) {
+      console.log(`[sync] skip fork ${repo.full_name}`);
+      continue;
+    }
     try {
       // ── Contributor commit counts (default branch) ──────────────── //
       const cResp = await githubFetch(
@@ -357,7 +376,11 @@ export async function aggregateGitHubStats(
       if (cResp.ok) {
         const list = (await cResp.json()) as GitHubContributor[];
         for (const c of list) {
-          const login = sanitizeLogin(c.login ?? "");
+          const raw = c.login ?? "";
+          // Bot accounts are counted exactly via the email-filtered path —
+          // skip them here to avoid duplicate leaderboard entries.
+          if (raw.endsWith("[bot]")) continue;
+          const login = sanitizeLogin(raw);
           if (!login) continue; // anonymous contributors are not leaderboard members
           const avatar =
             c.avatar_url ?? `https://github.com/${login}.png`;
@@ -388,7 +411,8 @@ export async function aggregateGitHubStats(
       );
       if (mResp.ok) {
         const commits = (await mResp.json()) as GitHubCommit[];
-        const windowBots = new Set<string>();
+        // bot login → occurrences inside the 100-commit window (fallback)
+        const windowBots = new Map<string, number>();
         for (const c of commits) {
           const rawLogin = c.author?.login ?? "";
           const date = c.commit?.author?.date;
@@ -403,7 +427,7 @@ export async function aggregateGitHubStats(
             if (c.author?.avatar_url) meta.avatar = c.author.avatar_url;
             if (date > meta.lastActive) meta.lastActive = date;
             botMeta.set(rawLogin, meta);
-            windowBots.add(rawLogin);
+            windowBots.set(rawLogin, (windowBots.get(rawLogin) ?? 0) + 1);
             continue;
           }
 
@@ -413,10 +437,13 @@ export async function aggregateGitHubStats(
           if (cur && date > cur.lastActive) cur.lastActive = date;
         }
 
-        // Exact bot commit totals via author-filtered pagination (Link header).
-        for (const bot of windowBots) {
+        // Exact bot totals via email-filtered pagination (login filter does
+        // not resolve [bot] logins). Falls back to the window count.
+        for (const [bot, windowCount] of windowBots) {
+          const mapped = BOT_IDENTITY_MAP[bot];
+          if (!mapped) continue;
           const lResp = await githubFetch(
-            `${GITHUB_API}/repos/${repo.full_name}/commits?author=${encodeURIComponent(bot)}&per_page=1`,
+            `${GITHUB_API}/repos/${repo.full_name}/commits?author=${encodeURIComponent(mapped.email)}&per_page=1`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -425,17 +452,18 @@ export async function aggregateGitHubStats(
               },
             },
           );
-          if (!lResp.ok) continue;
-          const link = lResp.headers.get("Link") ?? "";
-          const last = link.match(/page=(\d+)>; rel="last"/);
-          if (last) {
-            botCounts.set(bot, (botCounts.get(bot) ?? 0) + parseInt(last[1], 10));
-          } else {
-            const body = (await lResp.json()) as GitHubCommit[];
-            if (body.length > 0) {
-              botCounts.set(bot, (botCounts.get(bot) ?? 0) + 1);
-            }
+          if (!lResp.ok) {
+            botCounts.set(bot, (botCounts.get(bot) ?? 0) + windowCount);
+            continue;
           }
+          const link = lResp.headers.get("Link") ?? "";
+          // GitHub quirks: exactly-1 result reports rel="last" page=0;
+          // multi-page reports the real last page number.
+          const last = link.match(/page=(\d+)>; rel="last"/);
+          const page = last ? parseInt(last[1], 10) : 0;
+          const body = (await lResp.json()) as GitHubCommit[];
+          const exact = Math.max(page, body.length > 0 ? 1 : 0, windowCount);
+          botCounts.set(bot, (botCounts.get(bot) ?? 0) + exact);
         }
       }
 
