@@ -13,8 +13,12 @@
  */
 
 import type { Env } from "./_shared.js";
+import { generateAppJwt, getInstallationToken } from "../../src/auth/github.js";
+import type { GitHubAppConfig } from "../../src/auth/github.js";
+import { githubFetch } from "../../src/github-api.js";
 
 const KV_KEY = "dashboard_data";
+const GITHUB_API = "https://api.github.com";
 
 /** CORS origin allowed for browser access (Pages SPA). */
 const ALLOWED_ORIGIN = "https://pocwu.pages.dev";
@@ -255,4 +259,246 @@ export async function recordMetricsEvent(
   } catch (err) {
     console.error(`[metrics] record ${event} failed: ${err}`);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Daily sync (cron 00:00 UTC) — authoritative GitHub recompute       */
+/* ------------------------------------------------------------------ */
+
+interface GitHubRepo {
+  full_name: string;
+  name: string;
+  private: boolean;
+}
+
+interface GitHubContributor {
+  login: string | null;
+  avatar_url: string | null;
+  contributions: number;
+}
+
+interface GitHubCommit {
+  author: { login: string | null } | null;
+  commit: { author: { date: string } };
+}
+
+/**
+ * Aggregate real leaderboard stats from the GitHub API using an
+ * installation access token:
+ *   - contributors        → /installation/repositories + /repos/{r}/contributors
+ *   - last_active         → most recent commit date per author (per repo, 100 newest)
+ *   - total_commits       → sum of GitHub `contributions` (default-branch commits)
+ *   - total_backups       → count of `backup/opencode-*` branches across repos
+ *
+ * Pure function (token in, data out) — never touches KV.
+ */
+export async function aggregateGitHubStats(
+  token: string,
+): Promise<MetricsData> {
+  const reposResp = await githubFetch(
+    `${GITHUB_API}/installation/repositories?per_page=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "OpenCodeWEBsAG/1.0",
+      },
+    },
+  );
+  if (!reposResp.ok) {
+    throw new Error(
+      `Failed to list installation repositories: ${reposResp.status} ${await reposResp.text()}`,
+    );
+  }
+  const reposData = (await reposResp.json()) as {
+    repositories: GitHubRepo[];
+  };
+
+  const contributors = new Map<
+    string,
+    { username: string; commits: number; avatar: string; lastActive: string }
+  >();
+  let totalBackups = 0;
+
+  for (const repo of reposData.repositories) {
+    try {
+      // ── Contributor commit counts (default branch) ──────────────── //
+      const cResp = await githubFetch(
+        `${GITHUB_API}/repos/${repo.full_name}/contributors?per_page=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "User-Agent": "OpenCodeWEBsAG/1.0",
+          },
+        },
+      );
+      if (cResp.ok) {
+        const list = (await cResp.json()) as GitHubContributor[];
+        for (const c of list) {
+          const login = sanitizeLogin(c.login ?? "");
+          if (!login) continue; // anonymous contributors are not leaderboard members
+          const avatar =
+            c.avatar_url ?? `https://github.com/${login}.png`;
+          const cur = contributors.get(login);
+          if (cur) {
+            cur.commits += c.contributions;
+          } else {
+            contributors.set(login, {
+              username: login,
+              commits: c.contributions,
+              avatar,
+              lastActive: new Date(0).toISOString(),
+            });
+          }
+        }
+      }
+
+      // ── Last-active timestamps (100 newest commits per repo) ────── //
+      const mResp = await githubFetch(
+        `${GITHUB_API}/repos/${repo.full_name}/commits?per_page=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "User-Agent": "OpenCodeWEBsAG/1.0",
+          },
+        },
+      );
+      if (mResp.ok) {
+        const commits = (await mResp.json()) as GitHubCommit[];
+        for (const c of commits) {
+          const login = sanitizeLogin(c.author?.login ?? "");
+          const date = c.commit?.author?.date;
+          if (!login || !date) continue;
+          const cur = contributors.get(login);
+          if (cur && date > cur.lastActive) cur.lastActive = date;
+        }
+      }
+
+      // ── Real backup snapshot count ──────────────────────────────── //
+      const bResp = await githubFetch(
+        `${GITHUB_API}/repos/${repo.full_name}/branches?per_page=100`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/vnd.github+json",
+            "User-Agent": "OpenCodeWEBsAG/1.0",
+          },
+        },
+      );
+      if (bResp.ok) {
+        const branches = (await bResp.json()) as { name: string }[];
+        totalBackups += branches.filter((b) =>
+          b.name.startsWith("backup/opencode-"),
+        ).length;
+      }
+    } catch (err) {
+      // One repo failing must not kill the whole daily sync.
+      console.error(`[metrics] sync skip repo ${repo.full_name}: ${err}`);
+    }
+  }
+
+  const list = [...contributors.values()]
+    .map((c) => ({
+      username: c.username,
+      role: "Co-Author / Contributor",
+      avatar: c.avatar,
+      commits_count: c.commits,
+      last_active: c.lastActive,
+    }))
+    .sort(
+      (a, b) =>
+        b.commits_count - a.commits_count ||
+        b.last_active.localeCompare(a.last_active),
+    );
+
+  return {
+    system_stats: {
+      total_backups: totalBackups,
+      bugs_fixed: 0, // preserved from existing data by runDashboardSync
+      total_commits: list.reduce((s, c) => s + c.commits_count, 0),
+      last_updated: new Date().toISOString(),
+    },
+    contributors: list,
+  };
+}
+
+/**
+ * Run the daily dashboard sync (cron 00:00 UTC or manual POST):
+ * obtains an installation token, recomputes authoritative stats from
+ * GitHub, preserves the `bugs_fixed` accumulator, and rewrites KV.
+ * Never corrupts KV on failure — the previous snapshot stays intact.
+ */
+export async function runDashboardSync(
+  env: Env,
+): Promise<{ ok: boolean; data?: MetricsData; error?: string }> {
+  try {
+    if (!env.AG_METRICS) {
+      return { ok: false, error: "AG_METRICS KV not bound" };
+    }
+    const appId = env.APP_ID;
+    const privateKey = env.PRIVATE_KEY;
+    const installationId = env.INSTALLATION_ID;
+    if (!appId || !privateKey || !installationId) {
+      return { ok: false, error: "GitHub App secrets not configured" };
+    }
+
+    const config: GitHubAppConfig = { appId, privateKey, installationId };
+    const jwt = await generateAppJwt(config);
+    const { token } = await getInstallationToken(jwt, installationId);
+
+    const fresh = await aggregateGitHubStats(token);
+
+    // Preserve the event-accumulated bug-fix counter across resyncs.
+    const existing = await readMetrics(env);
+    fresh.system_stats.bugs_fixed = existing.system_stats.bugs_fixed;
+
+    await env.AG_METRICS.put(KV_KEY, JSON.stringify(fresh));
+    return { ok: true, data: fresh };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+/**
+ * POST /api/metrics/sync — HMAC-protected manual trigger of the daily
+ * sync (same auth scheme as /api/metrics/update). Primarily an ops
+ * tool; the cron trigger is the automatic path.
+ */
+export async function handleSyncMetrics(
+  env: Env,
+  request: Request,
+): Promise<Response> {
+  const secret = env.METRICS_WEBHOOK_SECRET ?? env.WEBHOOK_SECRET;
+  if (!secret) {
+    return new Response(
+      JSON.stringify({ error: "Metrics secret not configured" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const rawBody = await request.text();
+  const signature = request.headers.get("X-Hub-Signature-256");
+
+  const valid = await verifyGitHubSignature(secret, rawBody, signature);
+  if (!valid) {
+    return new Response(JSON.stringify({ error: "Invalid signature" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const result = await runDashboardSync(env);
+  if (!result.ok || !result.data) {
+    return new Response(
+      JSON.stringify({ error: result.error ?? "sync failed" }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, totals: result.data.system_stats }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 }

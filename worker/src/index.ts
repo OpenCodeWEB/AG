@@ -20,7 +20,7 @@ import type { Env } from "./_shared.js";
 import { handleWebhook } from "./webhook/handler.js";
 import { handleListInstallations } from "./installations.js";
 import { handleCreateRepo } from "./repos.js";
-import { handleGetMetrics, handleUpdateMetrics } from "./metrics.js";
+import { handleGetMetrics, handleUpdateMetrics, handleSyncMetrics, runDashboardSync } from "./metrics.js";
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -77,6 +77,12 @@ export default {
       return handleUpdateMetrics(env, request);
     }
 
+    // ── POST /api/metrics/sync ────────────────────────────────── //
+    // HMAC-authenticated manual trigger of the daily GitHub sync.
+    if (method === "POST" && url.pathname === "/api/metrics/sync") {
+      return handleSyncMetrics(env, request);
+    }
+
     // ── Gateway-only access check ─────────────────────────────── //
     // All requests MUST come through opencodeweb.xup.workers.dev.
     // Direct access to this worker URL is blocked.
@@ -117,5 +123,28 @@ export default {
 
     // ── 404 ───────────────────────────────────────────────────── //
     return new Response("Not found", { status: 404 });
+  },
+
+  /**
+   * Cron: daily 00:00 UTC — recompute Live Analytics + Contributor
+   * Leaderboard from the GitHub API (authoritative daily snapshot).
+   */
+  async scheduled(
+    _controller: ScheduledController,
+    env: Env,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    const started = Date.now();
+    const result = await runDashboardSync(env);
+    if (result.ok && result.data) {
+      const s = result.data.system_stats;
+      console.log(
+        `[sync] dashboard refreshed in ${Date.now() - started}ms ` +
+          `commits=${s.total_commits} backups=${s.total_backups} ` +
+          `bugs=${s.bugs_fixed} contributors=${result.data.contributors.length}`,
+      );
+    } else {
+      console.error(`[sync] daily sync failed: ${result.error}`);
+    }
   },
 } satisfies ExportedHandler<Env>;

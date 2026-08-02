@@ -4,7 +4,8 @@
 
 export interface Env {
   AG_TOKENS_KV: KVNamespace;
-  AG_METRICS?: KVNamespace;
+  AG_METRICS: KVNamespace;
+  AG_DB?: D1Database;
   WEBHOOK_SECRET?: string;
   METRICS_WEBHOOK_SECRET?: string;
   APP_ID?: string;

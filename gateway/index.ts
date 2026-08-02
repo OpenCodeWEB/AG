@@ -165,10 +165,11 @@ async function authenticate(
       gatewayToken === env.INTERNAL_GATEWAY_TOKEN);
 
   // Check webhook HMAC as alternative auth (GitHub's secret-key handshake)
-  // Applies to /api/github/webhook AND POST /api/metrics/update
+  // Applies to /api/github/webhook, POST /api/metrics/update, POST /api/metrics/sync
   const hmacRoutes =
     path === "/api/github/webhook" ||
-    (path === "/api/metrics/update" && request.method === "POST");
+    (path === "/api/metrics/update" && request.method === "POST") ||
+    (path === "/api/metrics/sync" && request.method === "POST");
   const hasValidHmac =
     hmacRoutes && (await isWebhookHmacValid(request, env));
 
@@ -251,9 +252,23 @@ async function handleWebhook(
   }
 
   // Forward to AG worker via service binding
+  // Preserve ALL GitHub webhook headers — the worker re-validates the HMAC
+  // and requires X-GitHub-Event + X-GitHub-Delivery.
   const forwardHeaders = new Headers();
   if (env.INTERNAL_GATEWAY_TOKEN) {
     forwardHeaders.set("X-Gateway-Token", env.INTERNAL_GATEWAY_TOKEN);
+  }
+  const preservedHeaders = [
+    "X-GitHub-Event",
+    "X-GitHub-Delivery",
+    "X-Hub-Signature-256",
+    "X-GitHub-Hook-ID",
+    "X-GitHub-Hook-Installation-Target-ID",
+    "X-GitHub-Hook-Installation-Target-Type",
+  ];
+  for (const name of preservedHeaders) {
+    const value = request.headers.get(name);
+    if (value) forwardHeaders.set(name, value);
   }
 
   let agStatus = 0;

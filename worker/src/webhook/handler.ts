@@ -34,10 +34,18 @@ const GITHUB_API = "https://api.github.com";
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-/** Get the installation ID from a webhook payload. */
-function getInstallationId(payload: Record<string, unknown>): string | null {
+/** Get the installation ID from a webhook payload.
+ *  GitHub App webhooks include `payload.installation`; classic repo
+ *  webhooks do not — fall back to the worker's INSTALLATION_ID secret
+ *  so repo-level hooks still trigger the full pipeline. */
+function getInstallationId(
+  payload: Record<string, unknown>,
+  env?: Env,
+): string | null {
   const inst = payload.installation as Record<string, unknown> | undefined;
-  return inst?.id ? String(inst.id) : null;
+  if (inst?.id) return String(inst.id);
+  if (env?.INSTALLATION_ID) return env.INSTALLATION_ID;
+  return null;
 }
 
 /** Build the GitHubAppConfig from env vars + dynamic installation ID. */
@@ -222,7 +230,7 @@ async function handlePush(
   const [owner, repo] = repoFull.split("/");
   const ref = (payload.ref as string) ?? "unknown";
   const sender = (payload.sender as Record<string, unknown> | undefined)?.login as string ?? "unknown";
-  const installationId = getInstallationId(payload);
+  const installationId = getInstallationId(payload, env);
 
   if (!installationId || !owner || !repo) {
     console.log(`[push] missing installation/owner/repo: ${repoFull} ref=${ref} sender=${sender}`);
@@ -332,7 +340,7 @@ async function handlePullRequest(
   const pr = (payload.pull_request as Record<string, unknown> | undefined)?.number as number ?? 0;
   const repoFull = (payload.repository as Record<string, unknown> | undefined)?.full_name as string ?? "unknown";
   const [owner, repo] = repoFull.split("/");
-  const installationId = getInstallationId(payload);
+  const installationId = getInstallationId(payload, env);
 
   console.log(`[pull_request] ${action} PR #${pr} on ${repoFull}`);
 
