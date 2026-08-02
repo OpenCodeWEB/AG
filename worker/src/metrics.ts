@@ -128,19 +128,27 @@ async function applyAndPersist(
   s.total_commits += 1;
   s.last_updated = now;
 
-  // Contributor upsert (case-insensitive on username)
-  const login = sanitizeLogin(actor) || "anonymous";
+  // Contributor upsert (case-insensitive on username).
+  // Bot logins (e.g. "opencodeweb[bot]") resolve through the identity map
+  // so webhook/pipeline events merge into the branded OpenCodeWEB entry
+  // instead of creating sanitized junk entries ("opencodewebbot").
+  const bot = BOT_IDENTITY_MAP[actor];
+  const display = bot ? bot.username : sanitizeLogin(actor) || "anonymous";
+  const role = bot ? bot.role : "Co-Author / Contributor";
+  const avatar = bot
+    ? OPENCODEWEB_AVATAR
+    : `https://github.com/${display}.png`;
   const existing = data.contributors.find(
-    (c) => c.username.toLowerCase() === login.toLowerCase(),
+    (c) => c.username.toLowerCase() === display.toLowerCase(),
   );
   if (existing) {
     existing.commits_count += 1;
     existing.last_active = now;
   } else {
     data.contributors.push({
-      username: login,
-      role: "Co-Author / Contributor",
-      avatar: `https://github.com/${login}.png`,
+      username: display,
+      role,
+      avatar,
       commits_count: 1,
       last_active: now,
     });
