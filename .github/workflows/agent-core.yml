@@ -163,9 +163,9 @@ jobs:
           commit_message: |
             robot: OpenCodeWEBsAG automated audit, test, and optimization [skip ci]
 
-            Co-authored-by: OpenCodeWEBsAG <ID+OpenCodeWEBsAG@users.noreply.github.com>
+            Co-authored-by: opencodewebsag[bot] <4418346+opencodewebsag[bot]@users.noreply.github.com>
             Co-authored-by: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           branch: ${{ github.head_ref || github.ref_name }}
-          commit_author: "ABsUP <ABsUP@users.noreply.github.com>"
-          commit_user_name: "ABsUP"
-          commit_user_email: "ABsUP@users.noreply.github.com"
+          commit_author: "opencodewebsag[bot] <4418346+opencodewebsag[bot]@users.noreply.github.com>"
+          commit_user_name: "opencodewebsag[bot]"
+          commit_user_email: "4418346+opencodewebsag[bot]@users.noreply.github.com"

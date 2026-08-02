@@ -278,9 +278,24 @@ interface GitHubContributor {
 }
 
 interface GitHubCommit {
-  author: { login: string | null } | null;
+  author: { login: string | null; avatar_url?: string | null } | null;
   commit: { author: { date: string } };
 }
+
+/**
+ * Automation identities displayed in the leaderboard as OpenCodeWEBsAG.
+ * GitHub's /contributors endpoint excludes bot accounts, so bot-authored
+ * commits must be counted separately (commits?author=... + Link header).
+ */
+const BOT_IDENTITY_MAP: Record<string, { username: string; role: string }> = {
+  "github-actions[bot]": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
+  "github-actionsbot": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
+  "opencodewebsag[bot]": { username: "OpenCodeWEBsAG", role: "Bot / Automation" },
+};
+
+/** Public avatar + page for the OpenCodeWEBsAG GitHub App bot user. */
+const OPENCODEWEBSAG_AVATAR =
+  "https://avatars.githubusercontent.com/u/310319632?v=4";
 
 /**
  * Aggregate real leaderboard stats from the GitHub API using an
@@ -317,6 +332,12 @@ export async function aggregateGitHubStats(
   const contributors = new Map<
     string,
     { username: string; commits: number; avatar: string; lastActive: string }
+  >();
+  // Raw bot logins seen in commits windows → exact counts (per repo via Link header).
+  const botCounts = new Map<string, number>();
+  const botMeta = new Map<
+    string,
+    { avatar: string; lastActive: string }
   >();
   let totalBackups = 0;
 
@@ -367,12 +388,54 @@ export async function aggregateGitHubStats(
       );
       if (mResp.ok) {
         const commits = (await mResp.json()) as GitHubCommit[];
+        const windowBots = new Set<string>();
         for (const c of commits) {
-          const login = sanitizeLogin(c.author?.login ?? "");
+          const rawLogin = c.author?.login ?? "";
           const date = c.commit?.author?.date;
-          if (!login || !date) continue;
+          if (!rawLogin || !date) continue;
+
+          // Bot authors are excluded by /contributors — count them separately.
+          if (rawLogin.endsWith("[bot]")) {
+            const meta = botMeta.get(rawLogin) ?? {
+              avatar: "",
+              lastActive: new Date(0).toISOString(),
+            };
+            if (c.author?.avatar_url) meta.avatar = c.author.avatar_url;
+            if (date > meta.lastActive) meta.lastActive = date;
+            botMeta.set(rawLogin, meta);
+            windowBots.add(rawLogin);
+            continue;
+          }
+
+          const login = sanitizeLogin(rawLogin);
+          if (!login) continue;
           const cur = contributors.get(login);
           if (cur && date > cur.lastActive) cur.lastActive = date;
+        }
+
+        // Exact bot commit totals via author-filtered pagination (Link header).
+        for (const bot of windowBots) {
+          const lResp = await githubFetch(
+            `${GITHUB_API}/repos/${repo.full_name}/commits?author=${encodeURIComponent(bot)}&per_page=1`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                Accept: "application/vnd.github+json",
+                "User-Agent": "OpenCodeWEBsAG/1.0",
+              },
+            },
+          );
+          if (!lResp.ok) continue;
+          const link = lResp.headers.get("Link") ?? "";
+          const last = link.match(/page=(\d+)>; rel="last"/);
+          if (last) {
+            botCounts.set(bot, (botCounts.get(bot) ?? 0) + parseInt(last[1], 10));
+          } else {
+            const body = (await lResp.json()) as GitHubCommit[];
+            if (body.length > 0) {
+              botCounts.set(bot, (botCounts.get(bot) ?? 0) + 1);
+            }
+          }
         }
       }
 
@@ -399,6 +462,34 @@ export async function aggregateGitHubStats(
     }
   }
 
+  // Merge mapped bot identities into the leaderboard (e.g. github-actions[bot]
+  // and opencodewebsag[bot] both display as OpenCodeWEBsAG).
+  const mergedBots = new Map<
+    string,
+    { count: number; avatar: string; lastActive: string; role: string }
+  >();
+  for (const [rawLogin, count] of botCounts) {
+    const mapped = BOT_IDENTITY_MAP[rawLogin];
+    if (!mapped) continue;
+    const meta = botMeta.get(rawLogin) ?? {
+      avatar: OPENCODEWEBSAG_AVATAR,
+      lastActive: new Date(0).toISOString(),
+    };
+    const cur = mergedBots.get(mapped.username);
+    if (cur) {
+      cur.count += count;
+      if (meta.lastActive > cur.lastActive) cur.lastActive = meta.lastActive;
+      if (!cur.avatar) cur.avatar = meta.avatar;
+    } else {
+      mergedBots.set(mapped.username, {
+        count,
+        avatar: meta.avatar || OPENCODEWEBSAG_AVATAR,
+        lastActive: meta.lastActive,
+        role: mapped.role,
+      });
+    }
+  }
+
   const list = [...contributors.values()]
     .map((c) => ({
       username: c.username,
@@ -407,6 +498,15 @@ export async function aggregateGitHubStats(
       commits_count: c.commits,
       last_active: c.lastActive,
     }))
+    .concat(
+      [...mergedBots.entries()].map(([username, b]) => ({
+        username,
+        role: b.role,
+        avatar: b.avatar,
+        commits_count: b.count,
+        last_active: b.lastActive,
+      })),
+    )
     .sort(
       (a, b) =>
         b.commits_count - a.commits_count ||
