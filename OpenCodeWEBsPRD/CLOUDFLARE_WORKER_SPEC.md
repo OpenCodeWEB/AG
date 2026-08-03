@@ -169,8 +169,8 @@ Configure these 4 environment variables under **Cloudflare Settings -> Variables
 
 | Secret | Value/Source |
 |--------|-------------|
-| `APP_ID` | `4418346` |
-| `INSTALLATION_ID` | `149676194` |
+| `APP_ID` | `4460111` (OpenCodeWEB app, slug `opencodeweb`) |
+| `INSTALLATION_ID` | `150684882` (OpenCodeWEB org) |
 | `PRIVATE_KEY` | GitHub App private key (PKCS#8 format) |
 | `WEBHOOK_SECRET` | Same as gateway `WEBHOOK_SECRET` |
 
