@@ -23,6 +23,7 @@ import type { Env } from "./_shared.js";
 import { handleWebhook } from "./webhook/handler.js";
 import { handleListInstallations } from "./installations.js";
 import { handleCreateRepo } from "./repos.js";
+import { handleSandboxRepo } from "./sandbox.js";
 import { handleGetMetrics, handleUpdateMetrics, handleSyncMetrics, runDashboardSync } from "./metrics.js";
 
 export default {
@@ -65,6 +66,16 @@ export default {
     // Whitelisted before gateway guard — called via Pages Function service binding
     if (method === "GET" && url.pathname === "/installations") {
       return handleListInstallations(env);
+    }
+
+    // ── GET /api/sandbox ──────────────────────────────────────── //
+    // Read-only sandbox repo status — whitelisted for the Pages binding;
+    // also reachable via the gateway proxy (/api/ag/sandbox → /sandbox).
+    if (
+      method === "GET" &&
+      (url.pathname === "/api/sandbox" || url.pathname === "/sandbox")
+    ) {
+      return handleSandboxRepo(env, request);
     }
 
     // ── GET /api/metrics/live ─────────────────────────────────── //
