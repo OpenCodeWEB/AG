@@ -2,7 +2,7 @@
  * OAuth Token Refresh Engine
  *
  * Handles GitHub OAuth token exchange and 6-month
- * refresh token lifecycle for the OpenCodeWEBsAG bot.
+ * refresh token lifecycle for the OpenCodeWEB bot.
  */
 
 export interface TokenPayload {

@@ -3,7 +3,7 @@
  *
  * Applies automated fixes for common issues detected by the AST scanner.
  * Operates on isolated `fix/opencode-ag-*` branches and commits
- * with dual authorship (ABsUP + OpenCodeWEBsAG).
+ * with dual authorship (ABsUP + OpenCodeWEB).
  */
 
 import type { DetectedIssue } from "../scanner/ast-inspector.js";
@@ -16,7 +16,7 @@ export interface FixResult {
 }
 
 const CO_AUTHOR =
-  "Co-authored-by: OpenCodeWEBsAG <ID+OpenCodeWEBsAG@users.noreply.github.com>";
+  "Co-authored-by: opencodeweb[bot] <311941023+opencodeweb[bot]@users.noreply.github.com>";
 const COMMIT_AUTHOR = "ABsUP <ABsUP@users.noreply.github.com>";
 
 /**
@@ -123,7 +123,7 @@ export function buildCommitMessage(
   const failCount = fixes.filter((f) => !f.success).length;
 
   const lines: string[] = [
-    `robot: OpenCodeWEBsAG auto-repair (${fixCount} fix${fixCount !== 1 ? "es" : ""}) [skip ci]`,
+    `robot: OpenCodeWEB auto-repair (${fixCount} fix${fixCount !== 1 ? "es" : ""}) [skip ci]`,
     "",
     `Branch: ${branchName}`,
     "",

@@ -1,5 +1,5 @@
 /**
- * OpenCodeWEBsAG Worker — Cloudflare Worker entry point.
+ * OpenCodeWEB Worker — Cloudflare Worker entry point.
  *
  * Routes:
  *   GET  /health          → 200 OK (health check)
@@ -11,6 +11,9 @@
  *   APP_ID           — GitHub App ID (numeric)
  *   PRIVATE_KEY      — GitHub App RSA private key (PEM)
  *   INSTALLATION_ID  — GitHub App installation ID
+ *   ALLOWED_ACCOUNTS  — comma-separated GitHub logins allowed to drive the
+ *                       bot (tenant isolation; app is public). Defaults to
+ *                       OpenCodeWEB, ABsUP, ABsUPs when unset.
  *
  * KV namespace:
  *   AG_TOKENS_KV     — stores OAuth / installation tokens

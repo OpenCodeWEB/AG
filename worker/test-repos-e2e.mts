@@ -58,7 +58,7 @@ const del = await fetch(`https://api.github.com/repos/OpenCodeWEB/${repoName}`, 
   headers: {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github.v3+json",
-    "User-Agent": "OpenCodeWEBsAG/1.0",
+    "User-Agent": "OpenCodeWEB/1.0",
   },
 });
 console.log("Delete status:", del.status, del.status === 204 ? "(ok)" : `(${await del.text()})`);

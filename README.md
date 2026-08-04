@@ -1,4 +1,4 @@
-# 🤖 OpenCodeWEBsAG
+# 🤖 OpenCodeWEB
 
 **Autonomous Polyglot AI Agent** — a universal GitHub bot that automatically backs up, audits, and self-heals your repositories before any code mutation.
 
@@ -6,12 +6,12 @@
 
 ## Overview
 
-OpenCodeWEBsAG operates as an autonomous agent that intercepts every push/PR event and:
+OpenCodeWEB operates as an autonomous agent that intercepts every push/PR event and:
 
 1. **Creates pre-mutation backups** — forks public repos, snapshot branches for private repos
 2. **Runs AST code audits** — detects syntax errors, type bugs, security flaws
 3. **Applies auto-fixes** — self-heals common issues on isolated fix branches
-4. **Commits with dual authorship** — every automated commit attributes both `OpenCodeWEBsAG[bot]` and `ABsUP`
+4. **Commits with dual authorship** — every automated commit attributes both `opencodeweb[bot]` and `ABsUP`
 
 ## Repository Structure
 

@@ -12,6 +12,7 @@
 
 import type { Env, InstallRecord } from "./_shared.js";
 import { json } from "./_shared.js";
+import { isAccountAllowed } from "./_shared.js";
 import { generateAppJwt } from "../../src/auth/github.js";
 import type { GitHubAppConfig } from "../../src/auth/github.js";
 import { githubFetch } from "../../src/github-api.js";
@@ -121,7 +122,13 @@ export async function handleListInstallations(env: Env): Promise<Response> {
     const jwt = await generateAppJwt(config);
 
     const installations = await fetchInstallationsFromGitHub(jwt);
-    const records = await syncToKv(env.AG_TOKENS_KV, installations);
+
+    // Tenant isolation: with a public app, installations from third-party
+    // accounts are ignored — only the allowed ecosystem is tracked/listed.
+    const allowed = installations.filter((i) =>
+      isAccountAllowed(env, i.account?.login),
+    );
+    const records = await syncToKv(env.AG_TOKENS_KV, allowed);
 
     return json({
       ok: true,

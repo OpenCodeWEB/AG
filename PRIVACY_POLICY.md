@@ -1,11 +1,11 @@
-# Privacy Policy for OpenCodeWEBsAG
+# Privacy Policy for OpenCodeWEB
 
 **Effective Date:** July 29, 2026
 
-OpenCodeWEBsAG ("we", "bot", "service") is committed to protecting the privacy and security of your repositories.
+OpenCodeWEB ("we", "bot", "service") is committed to protecting the privacy and security of your repositories.
 
 ### 1. Data Collection
-OpenCodeWEBsAG processes source code, commit metadata, and execution triggers solely to perform automated AST auditing, static code analysis, and snapshot backups. 
+OpenCodeWEB processes source code, commit metadata, and execution triggers solely to perform automated AST auditing, static code analysis, and snapshot backups. 
 
 ### 2. Data Storage & Retention
 - We do **not** store your repository code on external servers.
@@ -16,4 +16,4 @@ OpenCodeWEBsAG processes source code, commit metadata, and execution triggers so
 We do not sell, share, or monetize repository data or metadata. Data processing occurs strictly within the authorized GitHub Organization boundary (`OpenCodeWEB`).
 
 ### 4. Contact & Opt-Out
-Users can revoke bot access at any time via GitHub App Settings -> Installed GitHub Apps -> OpenCodeWEBsAG -> Uninstall.
+Users can revoke bot access at any time via GitHub App Settings -> Installed GitHub Apps -> OpenCodeWEB -> Uninstall.

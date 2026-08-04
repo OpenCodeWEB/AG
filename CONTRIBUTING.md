@@ -1,4 +1,4 @@
-# 🤝 Contributing to OpenCodeWEBsAG
+# 🤝 Contributing to OpenCodeWEB
 
 ## 🚫 Direct GitHub Push Prohibition
 
@@ -19,7 +19,7 @@ All feature additions, bug fixes, and file modifications MUST be submitted throu
 
 ## Dual-Authorship Standard
 
-Every automated commit created by `OpenCodeWEBsAG[bot]` MUST include:
+Every automated commit created by `opencodeweb[bot]` MUST include:
 
 ```
 Co-authored-by: ABsUP <ABsUP@users.noreply.github.com>

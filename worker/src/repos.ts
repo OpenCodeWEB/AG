@@ -12,15 +12,18 @@
  *     "description": "…",              // optional
  *     "private": false,                // optional, default false
  *     "autoInit": true,                // optional, default true
- *     "installationId": "149676194"    // optional — auto-resolved from KV
  *   }
+ *
+ * The installation ID is ALWAYS resolved server-side from KV for `owner` —
+ * a client-supplied installationId is never trusted (prevents cross-tenant
+ * repo creation once the app is public).
  *
  * Response 201:
  *   { ok, fullName, htmlUrl, defaultBranch, private, createdAt, installation }
  *
  * Errors:
  *   400 — missing owner/name
- *   403 — app not installed on owner, or GitHub refused (user account)
+ *   403 — app not installed on owner / account not authorized
  *   404 — installation not found
  *   409 — repo already exists
  *   502 — GitHub API failure
@@ -28,6 +31,7 @@
 
 import type { Env, InstallRecord } from "./_shared.js";
 import { json } from "./_shared.js";
+import { isAccountAllowed } from "./_shared.js";
 import { generateAppJwt, getInstallationToken } from "../../src/auth/github.js";
 import type { GitHubAppConfig } from "../../src/auth/github.js";
 import { githubFetch } from "../../src/github-api.js";
@@ -48,14 +52,11 @@ function buildAppConfig(env: Env, installationId: string): GitHubAppConfig {
   };
 }
 
-/** Resolve the installation ID for an account from KV. */
+/** Resolve the installation ID for an account from KV (never client-supplied). */
 async function resolveInstallationId(
   env: Env,
   owner: string,
-  explicitId?: string,
 ): Promise<string | null> {
-  if (explicitId) return explicitId;
-
   if (!env.AG_TOKENS_KV) return null;
 
   try {
@@ -115,7 +116,6 @@ export async function handleCreateRepo(
     description?: string;
     private?: boolean;
     autoInit?: boolean;
-    installationId?: string;
   };
   try {
     body = (await request.json()) as typeof body;
@@ -139,8 +139,18 @@ export async function handleCreateRepo(
   const isPrivate = body.private ?? false;
   const autoInit = body.autoInit ?? true;
 
-  // ── Resolve installation ───────────────────────────────────────── //
-  const installationId = await resolveInstallationId(env, owner, body.installationId);
+  // ── Tenant gate (public app → only our accounts may create repos) ── //
+  if (!isAccountAllowed(env, owner)) {
+    return json(
+      {
+        error: `Account "${owner}" is not authorized to create repositories through this app.`,
+      },
+      403,
+    );
+  }
+
+  // ── Resolve installation (server-side only) ──────────────────────── //
+  const installationId = await resolveInstallationId(env, owner);
   if (!installationId) {
     return json(
       {

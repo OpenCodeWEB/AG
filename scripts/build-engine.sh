@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# OpenCodeWEBsAG Polyglot Build & Verification Script
+# OpenCodeWEB Polyglot Build & Verification Script
 # Enforces strict pre-flight checks, TypeScript compilation, and artifact generation.
 # ==============================================================================
 
 set -eo pipefail
 
-echo "🛡️ [OpenCodeWEBsAG] Initializing secure build pipeline..."
+echo "🛡️ [OpenCodeWEB] Initializing secure build pipeline..."
 
 # 1. TypeScript Compilation
 if [ -f "tsconfig.json" ]; then
@@ -21,4 +21,4 @@ if [ -f "package.json" ]; then
     npx prettier --check "src/**/*.ts" 2>&1 || echo "⚠️  Formatting warnings detected."
 fi
 
-echo "✨ [OpenCodeWEBsAG] All modules verified successfully!"
+echo "✨ [OpenCodeWEB] All modules verified successfully!"

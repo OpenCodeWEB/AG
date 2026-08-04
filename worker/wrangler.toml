@@ -23,3 +23,6 @@ crons = ["0 0 * * *"]
 # APP_ID                   — GitHub App ID
 # PRIVATE_KEY              — GitHub App RSA private key (PEM)
 # INSTALLATION_ID          — GitHub App installation ID
+# ALLOWED_ACCOUNTS         — comma-separated GitHub logins allowed to drive the
+#                            bot (tenant isolation for the public app).
+#                            Defaults to OpenCodeWEB,ABsUP,ABsUPs when unset.

@@ -1,5 +1,5 @@
 /**
- * OpenCodeWEBsAG — Autonomous Polyglot AI Agent
+ * OpenCodeWEB — Autonomous Polyglot AI Agent
  *
  * Main entry point. Orchestrates the full lifecycle:
  *   1. Token validation/refresh

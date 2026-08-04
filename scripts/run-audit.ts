@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * OpenCodeWEBsAG AST Code Audit Runner
+ * OpenCodeWEB AST Code Audit Runner
  *
  * Scans all source files in the project, detects issues,
  * and appends them to the ToDo.md ledger.
@@ -66,7 +66,7 @@ function main(): void {
   const ledger = issuesToLedger(scanResult);
   const toDoPath = "OpenCodeWEBsPRD/ToDo.md";
   try {
-    appendFileSync(toDoPath, "\n## Active Issues Detected by OpenCodeWEBsAG\n" + ledger + "\n");
+    appendFileSync(toDoPath, "\n## Active Issues Detected by OpenCodeWEB\n" + ledger + "\n");
     console.log(`Appended ${scanResult.issues.length} issues to ${toDoPath}`);
   } catch {
     // Directory or file may not exist yet

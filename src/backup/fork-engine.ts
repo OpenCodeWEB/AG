@@ -52,7 +52,7 @@ async function createFork(
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "User-Agent": "OpenCodeWEBsAG/1.0",
+      "User-Agent": "OpenCodeWEB/1.0",
     },
     body: JSON.stringify({
       name: `${repo}-backup-${timestamp}`,
@@ -102,7 +102,7 @@ async function createSnapshotBranch(
     {
       headers: {
         Authorization: `Bearer ${token}`,
-        "User-Agent": "OpenCodeWEBsAG/1.0",
+        "User-Agent": "OpenCodeWEB/1.0",
       },
     },
   );
@@ -122,7 +122,7 @@ async function createSnapshotBranch(
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "User-Agent": "OpenCodeWEBsAG/1.0",
+        "User-Agent": "OpenCodeWEB/1.0",
       },
       body: JSON.stringify({
         ref: `refs/heads/${branchName}`,
@@ -155,7 +155,7 @@ async function getRepoInfo(
   const resp = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "User-Agent": "OpenCodeWEBsAG/1.0",
+      "User-Agent": "OpenCodeWEB/1.0",
     },
   });
 

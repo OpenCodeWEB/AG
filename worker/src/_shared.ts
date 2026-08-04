@@ -12,6 +12,35 @@ export interface Env {
   PRIVATE_KEY?: string;
   INSTALLATION_ID?: string;
   INTERNAL_GATEWAY_TOKEN?: string;
+  /**
+   * Comma-separated GitHub account logins that may drive the bot
+   * (webhook processing, repo creation, installation listing).
+   * Tenant isolation: once the GitHub App is public, all other
+   * installers are ignored. Defaults to the OpenCodeWEB ecosystem.
+   */
+  ALLOWED_ACCOUNTS?: string;
+}
+
+/** Default tenants: the OpenCodeWEB org + the ABsUP accounts. */
+export const DEFAULT_ALLOWED_ACCOUNTS = ["opencodeweb", "absup", "absups"];
+
+/** Parse the ALLOWED_ACCOUNTS env var into lowercase logins. */
+export function parseAllowedAccounts(env: Env): string[] {
+  const raw = env.ALLOWED_ACCOUNTS?.trim();
+  if (!raw) return DEFAULT_ALLOWED_ACCOUNTS;
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** Tenant gate: is this GitHub account permitted to drive the bot? */
+export function isAccountAllowed(
+  env: Env,
+  account: string | null | undefined,
+): boolean {
+  if (!account) return false;
+  return parseAllowedAccounts(env).includes(account.toLowerCase());
 }
 
 /** Installation record stored in KV under ag_install:<id> */

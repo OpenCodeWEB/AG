@@ -10,6 +10,7 @@
 
 import type { Env, InstallRecord } from "../_shared.js";
 import { json } from "../_shared.js";
+import { isAccountAllowed } from "../_shared.js";
 import { recordMetricsEvent } from "../metrics.js";
 import { githubFetch } from "../../../src/github-api.js";
 import {
@@ -671,7 +672,7 @@ export async function handleWebhook(
     return new Response("Invalid signature", { status: 401 });
   }
 
-  // 2. Parse payload
+// 2. Parse payload
   let payload: Record<string, unknown>;
   try {
     payload = JSON.parse(body) as Record<string, unknown>;
@@ -681,7 +682,36 @@ export async function handleWebhook(
 
   console.log(`[webhook] event=${event} delivery=${delivery}`);
 
-  // 3. Dispatch â€” all handlers return 200 immediately
+  // 2b. Tenant isolation — the app is public, so ANY user can install it and
+  // their webhooks will arrive signed with the same app secret. Only process
+  // events whose account is in ALLOWED_ACCOUNTS; silently ack everyone else.
+  const repo = (payload.repository ?? {}) as Record<string, unknown>;
+  const owner =
+    ((repo.owner as Record<string, unknown> | undefined)?.login as string) ??
+    ((repo.owner as Record<string, unknown> | undefined)?.name as string) ??
+    null;
+  const installationAccount = (
+    (payload.installation as Record<string, unknown> | undefined)?.account as
+      | Record<string, unknown>
+      | undefined)?.login as string | undefined;
+  const sender =
+    (payload.sender as Record<string, unknown> | undefined)?.login as
+      | string
+      | undefined;
+  const tenant = owner ?? installationAccount ?? sender ?? null;
+  if (!isAccountAllowed(env, tenant)) {
+    console.log(
+      `[webhook] ignore event=${event} delivery=${delivery} from unauthorized tenant="${tenant}"`,
+    );
+    return json({
+      ok: true,
+      event,
+      ignored: true,
+      reason: "tenant-not-allowed",
+    });
+  }
+
+  // 3. Dispatch — all handlers return 200 immediately
   switch (event) {
     case "push":
       return handlePush(env, payload, ctx ?? ({} as ExecutionContext));

@@ -17,7 +17,7 @@ export async function githubFetch(
   const headers = new Headers(init?.headers);
   headers.set("X-GitHub-Api-Version", GITHUB_API_VERSION);
   if (!headers.has("User-Agent")) {
-    headers.set("User-Agent", "OpenCodeWEBsAG/1.0");
+    headers.set("User-Agent", "OpenCodeWEB/1.0");
   }
   return fetch(url, { ...init, headers });
 }

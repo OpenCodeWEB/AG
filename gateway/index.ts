@@ -291,7 +291,7 @@ async function handleWebhook(
       status: "Accepted",
       event,
       repository: repo,
-      agent: "OpenCodeWEBsAG",
+      agent: "OpenCodeWEB",
       gateway: "opencodeweb.xup.workers.dev",
       ag_worker_status: agStatus,
     }),

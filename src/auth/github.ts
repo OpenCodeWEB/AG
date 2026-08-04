@@ -103,7 +103,7 @@ export async function getInstallationToken(
       headers: {
         Authorization: `Bearer ${jwt}`,
         "Content-Type": "application/json",
-        "User-Agent": "OpenCodeWEBsAG/1.0",
+        "User-Agent": "OpenCodeWEB/1.0",
         Accept: "application/vnd.github.v3+json",
       },
     },

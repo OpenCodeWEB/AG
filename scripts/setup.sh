@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# OpenCodeWEBsAG Project Setup Script
+# OpenCodeWEB Project Setup Script
 # Installs dependencies and prepares the development environment.
 # ==============================================================================
 
 set -eo pipefail
 
-echo "🚀 [OpenCodeWEBsAG] Setting up development environment..."
+echo "🚀 [OpenCodeWEB] Setting up development environment..."
 
 # Install Node.js dependencies
 if [ -f "package.json" ]; then
@@ -18,4 +18,4 @@ fi
 # Create bin directory for built artifacts
 mkdir -p bin
 
-echo "✨ [OpenCodeWEBsAG] Setup complete!"
+echo "✨ [OpenCodeWEB] Setup complete!"
