@@ -158,6 +158,14 @@ async function authenticate(
     return { authenticated: true };
   }
 
+  // Public OAuth/install callback: the browser arrives here directly from
+  // GitHub with a temporary `code` (proof of authorization) — no API
+  // credentials are possible in this hop. The handler only exchanges the
+  // code or forwards it to the Pages callback; it never mutates state.
+  if (path === "/api/auth/callback") {
+    return { authenticated: true };
+  }
+
   // Check standard API key / internal token
   const hasValidKey =
     (env.GATEWAY_API_KEY && apiKey === env.GATEWAY_API_KEY) ||
@@ -325,6 +333,21 @@ async function handleAuthCallback(
       }
     );
   }
+
+  // ── GitHub App install-and-authorize flow ──────────────────────────
+  // GitHub redirects the browser here (or to the app's registered callback)
+  // with `code` + `installation_id` + `setup_action=install`. The install
+  // must be recorded by the Pages callback (AG_TOKENS_KV), so forward the
+  // browser back to pocwu.pages.dev preserving every query parameter.
+  const installationId = url.searchParams.get("installation_id");
+  if (installationId) {
+    const pagesUrl = new URL(
+      "https://pocwu.pages.dev/api/ag/auth/callback" + url.search
+    );
+    return Response.redirect(pagesUrl.toString(), 302);
+  }
+
+  // ── Plain OAuth code exchange (legacy SPA token flow) ──────────────
 
   // Exchange code for access token
   let tokenData: Record<string, unknown>;
