@@ -1,5 +1,5 @@
 # =============================================================================
-# OpenCodeWEBsAG Autonomous Agent Pipeline
+# OpenCodeWEB Autonomous Agent Pipeline
 #
 # Runs on every push and PR to main/master:
 #   1. Pre-mutation backup snapshot
@@ -10,7 +10,7 @@
 #   6. Commit changes with triple-authorship standard
 # =============================================================================
 
-name: OpenCodeWEBsAG Autonomous Agent Pipeline
+name: OpenCodeWEB Autonomous Agent Pipeline
 
 on:
   push:
