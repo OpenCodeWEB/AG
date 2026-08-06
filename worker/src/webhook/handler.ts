@@ -217,7 +217,7 @@ async function postComment(
 
 /**
  * Handle push events â€” the main processing pipeline.
- * 1. Create pre-mutation backup (fork/snapshot)
+ * 1. Create pre-mutation backup branch (off main, in the same repo)
  * 2. Scan changed files with AST inspector
  * 3. Apply auto-fixes
  * 4. Create fix branch + PR if fixes applied

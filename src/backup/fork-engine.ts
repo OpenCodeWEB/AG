@@ -1,13 +1,14 @@
 /**
- * Pre-Mutation Backup Fork Engine
+ * Pre-Mutation Backup Engine
  *
- * Creates safe restore points before any code mutation:
- * - Public repos: forks to a backup namespace via API
- * - Private repos: creates an immutable snapshot branch
+ * Creates safe restore points before any code mutation.
+ *
+ * Policy (repo-wide): for every repository, backups are always stored as a
+ * new branch pointing at the `main` branch HEAD inside the SAME repository.
+ * Separate backup repositories are NEVER created.
  */
-
 export interface BackupResult {
-  type: "fork" | "snapshot-branch";
+  type: "branch";
   name: string;
   url: string;
   sha: string;
@@ -19,7 +20,7 @@ import { githubFetch } from "../github-api.js";
 const GITHUB_API = "https://api.github.com";
 
 /**
- * Create a pre-mutation backup for the target repository.
+ * Create a pre-mutation backup branch for the target repository.
  */
 export async function createBackup(
   token: string,
@@ -27,70 +28,20 @@ export async function createBackup(
   repo: string,
   timestamp: string,
 ): Promise<BackupResult> {
-  // Check repository visibility
-  const repoInfo = await getRepoInfo(token, owner, repo);
-  const isPrivate = repoInfo.private;
-
-  if (isPrivate) {
-    return createSnapshotBranch(token, owner, repo, timestamp);
-  } else {
-    return createFork(token, owner, repo, timestamp);
-  }
+  return createBackupBranch(token, owner, repo, timestamp);
 }
 
 /**
- * Fork a public repository into the backup namespace.
+ * Create a backup branch off the default branch (`main`) HEAD,
+ * storing the snapshot inside the repository itself.
  */
-async function createFork(
+async function createBackupBranch(
   token: string,
   owner: string,
   repo: string,
   timestamp: string,
 ): Promise<BackupResult> {
-  const resp = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/forks`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "OpenCodeWEB/1.0",
-    },
-    body: JSON.stringify({
-      name: `${repo}-backup-${timestamp}`,
-      default_branch_only: true,
-    }),
-  });
-
-  if (!resp.ok) {
-    throw new Error(
-      `Fork creation failed: ${resp.status} ${await resp.text()}`,
-    );
-  }
-
-  const data = (await resp.json()) as {
-    full_name: string;
-    html_url: string;
-    default_branch: string;
-  };
-
-  return {
-    type: "fork",
-    name: data.full_name,
-    url: data.html_url,
-    sha: timestamp,
-    timestamp,
-  };
-}
-
-/**
- * Create an immutable snapshot branch for a private repository.
- */
-async function createSnapshotBranch(
-  token: string,
-  owner: string,
-  repo: string,
-  timestamp: string,
-): Promise<BackupResult> {
-  const branchName = `backup/opencode-ag-${timestamp}`;
+  const branchName = `backup/opencode-${repo}-${timestamp}`;
 
   // Get default branch HEAD
   const repoInfo = await getRepoInfo(token, owner, repo);
@@ -136,7 +87,7 @@ async function createSnapshotBranch(
   }
 
   return {
-    type: "snapshot-branch",
+    type: "branch",
     name: branchName,
     url: `https://github.com/${owner}/${repo}/tree/${branchName}`,
     sha,
@@ -151,7 +102,7 @@ async function getRepoInfo(
   token: string,
   owner: string,
   repo: string,
-): Promise<{ private: boolean; default_branch: string }> {
+): Promise<{ default_branch: string }> {
   const resp = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -163,7 +114,7 @@ async function getRepoInfo(
     throw new Error(`Failed to get repo info: ${resp.status}`);
   }
 
-  return (await resp.json()) as { private: boolean; default_branch: string };
+  return (await resp.json()) as { default_branch: string };
 }
 
 /**
