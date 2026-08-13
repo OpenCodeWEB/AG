@@ -158,6 +158,12 @@ async function authenticate(
     return { authenticated: true };
   }
 
+  // Public health probe: CI/CD pipelines and uptime monitors must be able
+  // to verify the gateway without credentials. Returns only status info.
+  if (path === "/health" && request.method === "GET") {
+    return { authenticated: true };
+  }
+
   // Public OAuth/install callback: the browser arrives here directly from
   // GitHub with a temporary `code` (proof of authorization) — no API
   // credentials are possible in this hop. The handler only exchanges the
