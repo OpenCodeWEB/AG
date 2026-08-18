@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # OpenCodeWEB Autonomous Agent Pipeline
 #
 # Runs on every push and PR to main/master:
@@ -6,7 +6,7 @@
 #   2. Build & type-check (core + worker)
 #   3. AST code audit (real scanner)
 #   4. Auto-format with Prettier
-#   5. Deploy worker (push to main only)
+#   5. Deploy worker (push to Dev only)
 #   6. Commit changes with triple-authorship standard
 # =============================================================================
 
@@ -14,7 +14,7 @@ name: OpenCodeWEB Autonomous Agent Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ Dev ]
   pull_request:
     types: [ opened, synchronize ]
 
@@ -29,7 +29,7 @@ jobs:
 
     steps:
       # -----------------------------------------------------------------------
-      #  Step 1 — Checkout with full depth for backup branch
+      #  Step 1 â€” Checkout with full depth for backup branch
       # -----------------------------------------------------------------------
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
 
       # -----------------------------------------------------------------------
-      #  Step 2 — Setup Node.js with npm cache
+      #  Step 2 â€” Setup Node.js with npm cache
       # -----------------------------------------------------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -49,30 +49,32 @@ jobs:
             worker/package-lock.json
 
       # -----------------------------------------------------------------------
-      #  Step 3 — Install dependencies (core + worker)
+      #  Step 3 â€” Install dependencies (core + worker)
       # -----------------------------------------------------------------------
       - name: Install Dependencies
         run: |
           npm ci
           cd worker && npm ci
 
+# -----------------------------------------------------------------------
+      #  Step 4 - Pre-Mutation Restore Point
       # -----------------------------------------------------------------------
-      #  Step 4 — Pre-Mutation Backup Snapshot
-      # -----------------------------------------------------------------------
-      - name: Establish Pre-Mutation Backup Snapshot
+      # One meaningful rolling backup branch: backup/restore-point always
+      # points at the last state before this run's mutation (force-updated
+      # on every run â€” no timestamp branch accumulation).
+      - name: Establish Pre-Mutation Restore Point
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TIMESTAMP=$(date +'%Y%m%d-%H%M%S')
-          RESTORE_BRANCH="backup/opencode-ag-${TIMESTAMP}"
-          echo "Creating backup snapshot branch: ${RESTORE_BRANCH}"
+          RESTORE_BRANCH="backup/restore-point"
+          echo "Updating restore point branch: ${RESTORE_BRANCH}"
 
           git config user.name "ABsUP"
           git config user.email "ABsUP@users.noreply.github.com"
 
-          # Create backup branch at current HEAD
-          git branch "${RESTORE_BRANCH}"
-          git push origin "${RESTORE_BRANCH}"
+          # Create/force-update restore point at current HEAD
+          git branch -f "${RESTORE_BRANCH}" HEAD
+          git push --force origin "${RESTORE_BRANCH}"
 
           # Record snapshot in ledger
           mkdir -p OpenCodeWEBsPRD
@@ -85,7 +87,7 @@ jobs:
           EOF
 
       # -----------------------------------------------------------------------
-      #  Step 5 — Build & TypeScript Verification
+      #  Step 5 â€” Build & TypeScript Verification
       # -----------------------------------------------------------------------
       - name: Build & Verification Script
         id: build
@@ -94,7 +96,7 @@ jobs:
           ./scripts/build-engine.sh
 
       # -----------------------------------------------------------------------
-      #  Step 6 — AST Code Audit (real scanner)
+      #  Step 6 â€” AST Code Audit (real scanner)
       # -----------------------------------------------------------------------
       - name: Execute AST Code Review & ToDo Builder
         run: |
@@ -138,16 +140,16 @@ jobs:
           scan 'sk_live_[0-9a-zA-Z]{16,}' "Stripe Secret Key"
           scan 'AIza[0-9A-Za-z_-]{35}' "Google API Key"
           if [ $FAIL -ne 0 ]; then
-            echo "::error::Secret leak scan failed — remove leaked credentials before committing."
+            echo "::error::Secret leak scan failed â€” remove leaked credentials before committing."
             exit 1
           fi
-          echo "✅ No leaked secrets detected."
+          echo "âœ… No leaked secrets detected."
 
       # -----------------------------------------------------------------------
-      #  Step 9 - Deploy Worker (push to main only)
+      #  Step 9 - Deploy Worker (push to Dev only)
       # -----------------------------------------------------------------------
       - name: Deploy Cloudflare Worker
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/Dev')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
@@ -158,7 +160,7 @@ jobs:
       #  Step 9b - Deploy Edge Gateway (opencodeweb.xup.workers.dev)
       # -----------------------------------------------------------------------
       - name: Deploy Cloudflare Gateway Worker
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/Dev')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
